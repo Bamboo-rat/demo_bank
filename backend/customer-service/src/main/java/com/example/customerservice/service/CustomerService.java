@@ -11,6 +11,7 @@ public interface CustomerService {
     Object loginCustomer(CustomerLoginDTO loginDto);
     CustomerResponse getMyInfo();
     CustomerResponse getCustomerById(String customerId);
+    CustomerResponse getCustomerByAuthProviderId(String authProviderId);
     CustomerResponse updateCustomer(String authProviderId, CustomerUpdateRequest updateRequest);
     void updateKycStatus(String nationalId, KycStatus kycStatus);
 }

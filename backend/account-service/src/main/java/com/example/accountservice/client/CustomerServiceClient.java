@@ -16,4 +16,9 @@ public interface CustomerServiceClient {
             @RequestParam(name = "checkActiveStatus", required = false, defaultValue = "false") boolean checkActiveStatus,
             @RequestParam(name = "checkKycStatus", required = false, defaultValue = "false") boolean checkKycStatus
     );
+
+    @GetMapping("/by-auth-provider/{authProviderId}")
+    ApiResponse<CustomerValidationResponse> getCustomerByAuthProviderId(
+            @PathVariable("authProviderId") String authProviderId
+    );
 }

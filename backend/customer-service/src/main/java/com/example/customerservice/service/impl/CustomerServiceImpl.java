@@ -42,16 +42,6 @@ public class CustomerServiceImpl implements CustomerService {
     @Transactional
     public CustomerResponse registerCustomer(CustomerRegisterRequest registerDto) {
 
-        if (customerRepository.existsByPhoneNumber(registerDto.getPhoneNumber())) {
-            throw new CustomerAlreadyExistsException("phoneNumber", registerDto.getPhoneNumber());
-        }
-        if (customerRepository.existsByEmail(registerDto.getEmail())) {
-            throw new CustomerAlreadyExistsException("email", registerDto.getEmail());
-        }
-        if (customerRepository.existsByNationalId(registerDto.getNationalId())) {
-            throw new CustomerAlreadyExistsException("nationalId", registerDto.getNationalId());
-        }
-
         String authProviderId = null;
         String coreCustomerId = null;
         Customer savedCustomer = null;
@@ -87,10 +77,33 @@ public class CustomerServiceImpl implements CustomerService {
             customer.setEmailVerified(false);
 
             savedCustomer = customerRepository.save(customer);
+            try {
+                keycloakService.updateUserAttribute(authProviderId, "customerId", savedCustomer.getCustomerId());
+            } catch (Exception e) {
+                log.warn("Failed to update customerId to Keycloak attributes", e);
+            }
             log.info("Successfully saved customer in database with ID: {}", savedCustomer.getCustomerId());
 
             return customerMapper.toResponse(savedCustomer);
 
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.error("Duplicate customer detected during save: {}", e.getMessage());
+            
+            // Rollback external systems
+            rollbackKeycloak(authProviderId);
+            rollbackCoreBanking(coreCustomerId);
+            
+            // Determine which field is duplicate
+            String message = e.getMessage().toLowerCase();
+            if (message.contains("phone") || message.contains("username")) {
+                throw new CustomerAlreadyExistsException("phoneNumber", registerDto.getPhoneNumber());
+            } else if (message.contains("email")) {
+                throw new CustomerAlreadyExistsException("email", registerDto.getEmail());
+            } else if (message.contains("national")) {
+                throw new CustomerAlreadyExistsException("nationalId", registerDto.getNationalId());
+            }
+            throw new CustomerAlreadyExistsException("field", "unknown - " + e.getMessage());
+            
         } catch (Exception e) {
             log.error("Error during customer registration, initiating rollback", e);
 
@@ -154,6 +167,17 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
+    public CustomerResponse getCustomerByAuthProviderId(String authProviderId) {
+        log.debug("Fetching customer info for authProviderId: {}", authProviderId);
+
+        Customer customer = customerRepository.findByAuthProviderId(authProviderId)
+                .orElseThrow(() -> new CustomerNotFoundException("authProviderId", authProviderId));
+
+        log.info("Found customer: {}", customer.getFullName());
+        return customerMapper.toResponse(customer);
+    }
+
+    @Override
     @Transactional
     public CustomerResponse updateCustomer(String authProviderId, CustomerUpdateRequest updateRequest) {
         Customer customer = customerRepository.findByAuthProviderId(authProviderId)
@@ -195,5 +219,28 @@ public class CustomerServiceImpl implements CustomerService {
         
         log.info("Found customer: {}", customer.getFullName());
         return customerMapper.toResponse(customer);
+    }
+
+
+    private void rollbackKeycloak(String authProviderId) {
+        if (authProviderId != null) {
+            try {
+                log.info("Rollback: Deleting user from Keycloak");
+                keycloakService.deleteUser(authProviderId);
+            } catch (Exception rollbackException) {
+                log.error("Failed to rollback Keycloak user", rollbackException);
+            }
+        }
+    }
+
+    private void rollbackCoreBanking(String coreCustomerId) {
+        if (coreCustomerId != null) {
+            try {
+                log.info("Rollback: Deleting customer from Core Banking");
+                coreBankingClient.deleteCoreCustomer(coreCustomerId);
+            } catch (Exception rollbackException) {
+                log.error("Failed to rollback Core Banking customer", rollbackException);
+            }
+        }
     }
 }

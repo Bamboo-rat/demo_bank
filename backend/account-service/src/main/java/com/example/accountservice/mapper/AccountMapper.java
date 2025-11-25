@@ -2,7 +2,6 @@ package com.example.accountservice.mapper;
 
 import com.example.accountservice.dto.response.AccountResponse;
 import com.example.accountservice.dto.response.CreditAccountResponse;
-import com.example.accountservice.dto.response.LoanAccountResponse;
 import com.example.accountservice.dto.response.SavingsAccountResponse;
 import com.example.accountservice.entity.*;
 import org.mapstruct.Mapper;
@@ -37,11 +36,4 @@ public interface AccountMapper {
     @Mapping(target = "customerStatus", ignore = true)
     @Mapping(target = "cifNumber", ignore = true)
     CreditAccountResponse toCreditResponse(CreditAccount creditAccount);
-
-    @Mapping(target = "customerName", ignore = true)
-    @Mapping(target = "customerStatus", ignore = true)
-    @Mapping(target = "cifNumber", ignore = true)
-    @Mapping(target = "remainingPayments", ignore = true) // Calculated separately
-    @Mapping(target = "totalInterest", ignore = true) // Calculated separately
-    LoanAccountResponse toLoanResponse(LoanAccount loanAccount);
 }

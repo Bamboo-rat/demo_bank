@@ -3,6 +3,7 @@ package com.example.customerservice.service.impl;
 import com.example.customerservice.dto.request.CustomerLoginDTO;
 import com.example.customerservice.dto.request.CustomerRegisterRequest;
 import com.example.customerservice.exception.AuthenticationException;
+import com.example.customerservice.exception.CustomerAlreadyExistsException;
 import com.example.customerservice.exception.ErrorCode;
 import com.example.customerservice.exception.KeycloakException;
 import jakarta.ws.rs.ProcessingException;
@@ -22,9 +23,12 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
+
+import java.util.List;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -52,6 +56,22 @@ public class KeycloakService {
 
 
     public String createUser(CustomerRegisterRequest userDto) {
+        RealmResource realmResource = keycloakAdminClient.realm(realm);
+        UsersResource usersResource = realmResource.users();
+        
+        // Check if user already exists by username or email
+        List<UserRepresentation> existingUsers = usersResource.searchByUsername(userDto.getPhoneNumber(), true);
+        if (!existingUsers.isEmpty()) {
+            log.warn("User already exists in Keycloak with username: {}", userDto.getPhoneNumber());
+            throw new CustomerAlreadyExistsException("phoneNumber", userDto.getPhoneNumber());
+        }
+        
+        List<UserRepresentation> existingEmailUsers = usersResource.searchByEmail(userDto.getEmail(), true);
+        if (!existingEmailUsers.isEmpty()) {
+            log.warn("User already exists in Keycloak with email: {}", userDto.getEmail());
+            throw new CustomerAlreadyExistsException("email", userDto.getEmail());
+        }
+        
         UserRepresentation user = new UserRepresentation();
         user.setEnabled(true);
         user.setUsername(userDto.getPhoneNumber());
@@ -65,8 +85,6 @@ public class KeycloakService {
         passwordCred.setValue(userDto.getPassword());
         user.setCredentials(Collections.singletonList(passwordCred));
 
-        RealmResource realmResource = keycloakAdminClient.realm(realm);
-        UsersResource usersResource = realmResource.users();
         Response response = null;
 
         try {
@@ -167,4 +185,17 @@ public class KeycloakService {
             throw new AuthenticationException(ErrorCode.INVALID_CREDENTIALS);
         }
     }
+
+    public void updateUserAttribute(String userId, String attributeName, String attributeValue) {
+        UsersResource usersResource = keycloakAdminClient.realm(realm).users();
+        UserRepresentation user = usersResource.get(userId).toRepresentation();
+
+        if (user.getAttributes() == null) {
+            user.setAttributes(new HashMap<>());
+        }
+        user.getAttributes().put(attributeName, List.of(attributeValue));
+
+        usersResource.get(userId).update(user);
+    }
+
 }

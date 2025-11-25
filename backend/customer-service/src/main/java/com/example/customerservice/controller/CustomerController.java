@@ -79,4 +79,22 @@ public class CustomerController {
         ApiResponse<CustomerValidationResponse> response = ApiResponse.success("Customer validation completed", validationResponse);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/by-auth-provider/{authProviderId}")
+    public ResponseEntity<ApiResponse<CustomerValidationResponse>> getCustomerByAuthProviderId(
+            @PathVariable String authProviderId) {
+        CustomerResponse customer = customerService.getCustomerByAuthProviderId(authProviderId);
+        
+        CustomerValidationResponse validationResponse = CustomerValidationResponse.builder()
+                .customerId(customer.getCustomerId())
+                .valid(true)
+                .message("Customer found")
+                .customerName(customer.getFullName())
+                .cifNumber(customer.getCoreBankingId())
+                .status(customer.getStatus().toString())
+                .build();
+        
+        ApiResponse<CustomerValidationResponse> response = ApiResponse.success("Customer retrieved", validationResponse);
+        return ResponseEntity.ok(response);
+    }
 }

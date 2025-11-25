@@ -1,10 +1,12 @@
 package com.example.accountservice.controller;
 
+import com.example.accountservice.client.CustomerServiceClient;
 import com.example.accountservice.dto.request.CloseAccountRequest;
 import com.example.accountservice.dto.request.OpenAccountRequest;
 import com.example.accountservice.dto.request.UpdateAccountRequest;
 import com.example.accountservice.dto.response.AccountListResponse;
 import com.example.accountservice.dto.response.AccountResponse;
+import com.example.accountservice.dto.response.CustomerValidationResponse;
 import com.example.accountservice.service.AccountService;
 import com.example.commonapi.dto.ApiResponse;
 import jakarta.validation.Valid;
@@ -36,6 +38,7 @@ import java.util.List;
 public class AccountController {
 
     private final AccountService accountService;
+    private final CustomerServiceClient customerServiceClient;
 
     /**
      * Open a new account for authenticated customer
@@ -225,26 +228,35 @@ public class AccountController {
 
     /**
      * Extract authenticated customer ID from JWT token
+     * SECURITY: Uses authProviderId from JWT to lookup actual customerId from customer-service
      */
     private String getAuthenticatedCustomerId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
-            // Extract customerId from JWT claims
-            // This assumes customerId is stored in JWT claims during authentication
-            // You might need to adjust based on your JWT structure
-            Object customerIdClaim = jwt.getClaims().get("customerId");
-
-            if (customerIdClaim != null) {
-                return customerIdClaim.toString();
-            }
-
-            // Fallback: use subject (Keycloak user ID) as customerId
-            // Note: This might need adjustment based on your actual JWT structure
-            log.warn("customerId not found in JWT claims, using subject as fallback");
-            return jwt.getSubject();
+        if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt)) {
+            throw new IllegalStateException("No JWT authentication found");
         }
 
-        throw new IllegalStateException("Unable to extract customerId from authentication context");
+        // Get authProviderId from JWT (Keycloak user ID)
+        String authProviderId = jwt.getSubject();
+        if (authProviderId == null || authProviderId.isBlank()) {
+            throw new IllegalStateException("authProviderId (sub claim) not found in JWT");
+        }
+
+        try {
+
+            ApiResponse<CustomerValidationResponse> response = customerServiceClient.getCustomerByAuthProviderId(authProviderId);
+            
+            CustomerValidationResponse customerData = response.getData();
+            if (customerData == null) {
+                throw new IllegalStateException("Customer not found for authProviderId: " + authProviderId);
+            }
+
+            return customerData.getCustomerId();
+            
+        } catch (Exception e) {
+            log.error("Failed to resolve customerId for authProviderId: {}", authProviderId, e);
+            throw new IllegalStateException("Unable to resolve customerId: " + e.getMessage(), e);
+        }
     }
 }

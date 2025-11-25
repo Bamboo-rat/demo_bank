@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+     /* Màu chính */
+  --color-blue-primary: #00b4e4;
+  --color-orange-primary: #ff6607;
+  --color-dark-blue: #1b1556;
+  --color-purple-tint: #231c5e;
+  
+  /* Màu pastel nhẹ nhàng */
+  --color-blue-pastel: #e6f7fd;
+  --color-orange-pastel: #ffefe6;
+  --color-dark-blue-pastel: #f0eff8;
+  --color-purple-pastel: #f3f2fa;
+  
+  /* Màu hover/active states */
+  --color-blue-hover: #0099c7;
+  --color-orange-hover: #e55c00;
+  --color-dark-blue-hover: #151044;
+  --color-purple-hover: #1d1650;
+}
+
+html,
+body {
+  @apply bg-white dark:bg-gray-950;
+
+  @media (prefers-color-scheme: dark) {
+    color-scheme: dark;
+  }
+  
+}
+.bg-blue-pastel {
+  background-color: var(--color-blue-pastel);
+}
+
+.bg-orange-pastel {
+  background-color: var(--color-orange-pastel);
+}
+
+.bg-dark-blue-pastel {
+  background-color: var(--color-dark-blue-pastel);
+}
+
+.bg-purple-pastel {
+  background-color: var(--color-purple-pastel);
+}
+
+.text-blue-primary {
+  color: var(--color-blue-primary);
+}
+
+.text-orange-primary {
+  color: var(--color-orange-primary);
+}
+
+.text-dark-blue {
+  color: var(--color-dark-blue);
+}
+
+.text-purple-tint {
+  color: var(--color-purple-tint);
+}
+
+.border-blue-primary {
+  border-color: var(--color-blue-primary);
+}
+
+.border-orange-primary {
+  border-color: var(--color-orange-primary);
+}
+
+/* Gradient backgrounds */
+.gradient-blue-orange {
+  background: linear-gradient(135deg, var(--color-blue-primary) 0%, var(--color-orange-primary) 100%);
+}
+
+.gradient-purple-blue {
+  background: linear-gradient(135deg, var(--color-purple-tint) 0%, var(--color-dark-blue) 100%);
+}
+
+/* Button styles với màu mới */
+.btn-blue {
+  @apply bg-blue-primary text-white px-4 py-2 rounded-lg transition-colors;
+}
+
+.btn-blue:hover {
+  background-color: var(--color-blue-hover);
+}
+
+.btn-orange {
+  @apply bg-orange-primary text-white px-4 py-2 rounded-lg transition-colors;
+}
+
+.btn-orange:hover {
+  background-color: var(--color-orange-hover);
+}
+
+/* Card styles với background pastel */
+.card-blue {
+  @apply bg-blue-pastel border border-blue-primary/20 rounded-xl p-6;
+}
+
+.card-orange {
+  @apply bg-orange-pastel border border-orange-primary/20 rounded-xl p-6;
+}
+
+.card-dark-blue {
+  @apply bg-dark-blue-pastel border border-dark-blue/20 rounded-xl p-6;
+}
+
+.card-purple {
+  @apply bg-purple-pastel border border-purple-tint/20 rounded-xl p-6;
+}

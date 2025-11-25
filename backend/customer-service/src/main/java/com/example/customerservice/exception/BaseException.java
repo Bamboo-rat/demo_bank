@@ -38,6 +38,6 @@ public abstract class BaseException extends RuntimeException {
     }
 
     private String generateTraceId() {
-        return "TR" + System.currentTimeMillis() + "_" + Thread.currentThread().threadId();
+        return "TR" + System.currentTimeMillis() + "_" + System.identityHashCode(Thread.currentThread());
     }
 }

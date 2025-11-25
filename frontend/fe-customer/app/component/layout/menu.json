@@ -1,0 +1,168 @@
+{
+  "mainMenu": [
+    {
+      "id": 1,
+      "title": "Tài khoản",
+      "icon": "account_balance",
+      "link": "/accounts",
+      "subMenu": [
+        {
+          "title": "Tài khoản thanh toán",
+          "link": "/accounts/payment"
+        },
+        {
+          "title": "Chi tiết tài khoản",
+          "link": "/accounts/detail"
+        },
+        {
+          "title": "Sao kê",
+          "link": "/accounts/statement"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Chuyển tiền",
+      "icon": "swap_horiz",
+      "link": "/transfer",
+      "subMenu": [
+        {
+          "title": "Chuyển nội bộ",
+          "link": "/transfer/internal"
+        },
+        {
+          "title": "Chuyển liên ngân hàng",
+          "link": "/transfer/interbank"
+        },
+        {
+          "title": "Chuyển nhanh 24/7",
+          "link": "/transfer/fast247"
+        },
+        {
+          "title": "Danh bạ thụ hưởng",
+          "link": "/transfer/beneficiaries"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Thanh toán",
+      "icon": "qr_code_scanner",
+      "link": "/payments",
+      "subMenu": [
+        {
+          "title": "Quét QR thanh toán",
+          "link": "/payments/qr"
+        },
+        {
+          "title": "Thanh toán hoá đơn",
+          "link": "/payments/bills"
+        },
+        {
+          "title": "Nạp tiền điện thoại",
+          "link": "/payments/topup"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Thẻ",
+      "icon": "credit_card",
+      "link": "/cards",
+      "subMenu": [
+        {
+          "title": "Thẻ ghi nợ",
+          "link": "/cards/debit"
+        },
+        {
+          "title": "Thẻ tín dụng",
+          "link": "/cards/credit"
+        },
+        {
+          "title": "Quản lý thẻ",
+          "link": "/cards/manage"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Tiết kiệm",
+      "icon": "savings",
+      "link": "/saving",
+      "subMenu": [
+        {
+          "title": "Sổ tiết kiệm",
+          "link": "/saving/books"
+        },
+        {
+          "title": "Gửi tiết kiệm online",
+          "link": "/saving/open"
+        },
+        {
+          "title": "Tất toán online",
+          "link": "/saving/close"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Vay",
+      "icon": "account_balance_wallet",
+      "link": "/loan",
+      "subMenu": [
+        {
+          "title": "Khoản vay của tôi",
+          "link": "/loan/my-loans"
+        },
+        {
+          "title": "Thanh toán khoản vay",
+          "link": "/loan/pay"
+        },
+        {
+          "title": "Đăng ký vay",
+          "link": "/loan/apply"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Tiện ích",
+      "icon": "widgets",
+      "link": "/utilities",
+      "subMenu": [
+        {
+          "title": "Tỷ giá",
+          "link": "/utilities/exchange-rate"
+        },
+        {
+          "title": "Lãi suất",
+          "link": "/utilities/interest-rate"
+        },
+        {
+          "title": "Tra cứu ATM/Chi nhánh",
+          "link": "/utilities/locations"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Hỗ trợ",
+      "icon": "support_agent",
+      "link": "/support",
+      "subMenu": [
+        {
+          "title": "Trung tâm hỗ trợ",
+          "link": "/support/center"
+        },
+        {
+          "title": "Gửi yêu cầu hỗ trợ",
+          "link": "/support/ticket"
+        },
+        {
+          "title": "Câu hỏi thường gặp",
+          "link": "/support/faq"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.login-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #00b4e4 transparent;
+}
+
+.login-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.login-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.login-scrollbar::-webkit-scrollbar-thumb {
+  background: #00b4e4;
+  border-radius: 10px;
+}
+
+.login-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #ff6607;
+}

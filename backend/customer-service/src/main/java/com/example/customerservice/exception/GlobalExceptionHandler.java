@@ -169,7 +169,7 @@ public class GlobalExceptionHandler {
     }
 
     private String generateSimpleTraceId() {
-        return "TR" + System.currentTimeMillis() + "_" + Thread.currentThread().threadId();
+        return "TR" + System.currentTimeMillis() + "_" + System.identityHashCode(Thread.currentThread());
     }
 
     private boolean isDevelopment() {

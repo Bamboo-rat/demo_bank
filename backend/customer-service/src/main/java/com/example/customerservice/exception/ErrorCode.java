@@ -32,6 +32,11 @@ public enum ErrorCode {
     INVALID_FULLNAME("E2109", "validation.invalid", HttpStatus.BAD_REQUEST),
     RATE_LIMIT_EXCEEDED("E2110", "system.error", HttpStatus.TOO_MANY_REQUESTS),
     INVALID_OTP("E2111", "validation.invalid", HttpStatus.BAD_REQUEST),
+    OTP_EXPIRED("E2112", "registration.otp.expired", HttpStatus.BAD_REQUEST),
+    REGISTRATION_SESSION_NOT_FOUND("E2113", "registration.session.not.found", HttpStatus.BAD_REQUEST),
+    REGISTRATION_SESSION_INVALID_STATE("E2114", "registration.session.invalid.state", HttpStatus.BAD_REQUEST),
+    REGISTRATION_SESSION_DATA_INCOMPLETE("E2115", "registration.session.data.incomplete", HttpStatus.BAD_REQUEST),
+    OTP_ALREADY_SENT("E2116", "registration.otp.already.sent", HttpStatus.TOO_MANY_REQUESTS),
 
     // Authentication errors (2200-2299)
     INVALID_CREDENTIALS("E2200", "auth.login.failed", HttpStatus.UNAUTHORIZED),

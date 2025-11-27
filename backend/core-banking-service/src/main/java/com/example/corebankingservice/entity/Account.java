@@ -8,9 +8,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "account")
@@ -21,24 +24,45 @@ import java.math.BigDecimal;
 public class Account {
     @Id
     @UuidGenerator
-    @Column(name = "account_id")
     private String accountId;
 
-    @Column(name = "cif_id")
-    private String cifId;
+    @Column(nullable = false)
+    private String cifNumber;
 
-    @Column(name = "account_number")
+    @Column(nullable = false, unique = true)
     private String accountNumber;
 
-    @Column(name = "account_type")
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private AccountType accountType;
 
-    private BigDecimal balance;
-
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Currency currency;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private AccountStatus status;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private BigDecimal balance = BigDecimal.ZERO;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private BigDecimal holdAmount = BigDecimal.ZERO;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean amlFlag = false;
+
+    @Column(name = "opened_at", nullable = false)
+    private LocalDateTime openedAt;
+
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
 }

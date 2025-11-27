@@ -7,7 +7,6 @@ import com.example.customerservice.dto.request.CustomerUpdateRequest;
 import com.example.customerservice.dto.response.CreateCoreCustomerResponse;
 import com.example.customerservice.dto.response.CustomerResponse;
 import com.example.customerservice.entity.Customer;
-import com.example.customerservice.entity.enums.CustomerStatus;
 import com.example.customerservice.entity.enums.KycStatus;
 import com.example.customerservice.entity.enums.RiskLevel;
 import com.example.customerservice.exception.CoreBankingException;
@@ -70,10 +69,7 @@ public class CustomerServiceImpl implements CustomerService {
             log.info("Step 3: Saving customer in local database");
             Customer customer = customerMapper.toEntity(registerDto);
             customer.setAuthProviderId(authProviderId);
-            customer.setCoreBankingId(coreCustomerId);
-            customer.setStatus(CustomerStatus.PENDING_APPROVAL);
-            customer.setKycStatus(KycStatus.PENDING);
-            customer.setRiskLevel(RiskLevel.LOW);
+            customer.setCifNumber(coreResponse.getCifNumber());
             customer.setEmailVerified(false);
 
             savedCustomer = customerRepository.save(customer);
@@ -202,13 +198,8 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional
     public void updateKycStatus(String nationalId, KycStatus kycStatus) {
-        Customer customer = customerRepository.findByNationalId(nationalId)
-                .orElseThrow(() -> new CustomerNotFoundException("nationalId", nationalId));
-
-        customer.setKycStatus(kycStatus);
-        customerRepository.save(customer);
-
-        log.info("Updated KYC status for customer {} to {}", customer.getFullName(), kycStatus);
+        log.info("Skip updating KYC status locally for nationalId {} to {}. This responsibility now resides in core banking.",
+                nationalId, kycStatus);
     }
 
     @Override

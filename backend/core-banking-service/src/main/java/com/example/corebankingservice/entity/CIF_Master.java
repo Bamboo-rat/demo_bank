@@ -12,6 +12,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -43,6 +44,16 @@ public class CIF_Master {
 
     @Column(name = "national_id", unique = true, nullable = false)
     private String nationalId;
+
+    private String nationality;
+
+    private LocalDate issueDateNationalId;
+
+    private String placeOfIssueNationalId;
+
+    private String occupation;
+
+    private String position;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "customer_status", nullable = false, length = 20)

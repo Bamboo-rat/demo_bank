@@ -29,13 +29,13 @@ public class AccountNumberGeneratorImpl implements AccountNumberGenerator {
     private static final String BANK_ID = "370";
     private static final SecureRandom RNG = new SecureRandom();
 
-    // Độ dài của phần 'số thứ tự' (có thể chỉnh). Tổng độ dài = 3 + 1 + SEQ_LEN + 1
+    // Độ dài của phần 'số thứ tự'. Tổng độ dài = 3 + 1 + SEQ_LEN + 1
     private final int sequenceLength;
 
     // Số lần thử khi gặp collision với DB trước khi báo lỗi
     private final int maxRetries;
 
-    private final AccountRepository accountRepository; // optional, để kiểm tra trùng
+    private final AccountRepository accountRepository;
 
     @Autowired
     public AccountNumberGeneratorImpl(AccountRepository accountRepository) {

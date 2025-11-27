@@ -1,9 +1,6 @@
 package com.example.customerservice.entity;
 
-import com.example.customerservice.entity.enums.CustomerStatus;
 import com.example.customerservice.entity.enums.Gender;
-import com.example.customerservice.entity.enums.KycStatus;
-import com.example.customerservice.entity.enums.RiskLevel;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -19,10 +16,7 @@ import java.time.LocalDateTime;
     @Index(name = "idx_core_banking_id", columnList = "coreBankingId"),
     @Index(name = "idx_username", columnList = "username"),
     @Index(name = "idx_email", columnList = "email"),
-    @Index(name = "idx_phone_number", columnList = "phoneNumber"),
-    @Index(name = "idx_national_id", columnList = "nationalId"),
-    @Index(name = "idx_kyc_status", columnList = "kycStatus"),
-    @Index(name = "idx_customer_status", columnList = "status")
+    @Index(name = "idx_phone_number", columnList = "phoneNumber")
 })
 @Data
 @NoArgsConstructor
@@ -37,8 +31,8 @@ public class Customer {
     @Column(nullable = false, unique = true)
     private String authProviderId;  // ID keycloak
 
-    @Column(unique = true)
-    private String coreBankingId; // ID core bank
+    @Column(unique = true, nullable = false)
+    private String cifNumber;
 
     @Column(nullable = false, unique = true)
     private String username;
@@ -50,19 +44,6 @@ public class Customer {
 
     @Enumerated(EnumType.STRING)
     private Gender gender;
-
-    private String nationality;
-
-    @Column(nullable = false, unique = true)
-    private String nationalId; // CCCD/CMND
-
-    private LocalDate issueDateNationalId;
-
-    private String placeOfIssueNationalId;
-
-    private String occupation;
-
-    private String position;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -89,18 +70,6 @@ public class Customer {
             @AttributeOverride(name = "country", column = @Column(name = "temporary_country"))
     })
     private Address temporaryAddress;
-
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    private KycStatus kycStatus = KycStatus.PENDING;
-
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    private CustomerStatus status = CustomerStatus.ACTIVE;
-
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    private RiskLevel riskLevel = RiskLevel.LOW;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

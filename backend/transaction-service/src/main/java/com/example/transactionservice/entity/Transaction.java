@@ -3,6 +3,10 @@ package com.example.transactionservice.entity;
 import com.example.transactionservice.entity.enums.TransactionStatus;
 import com.example.transactionservice.entity.enums.TransactionType;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
@@ -15,6 +19,10 @@ import java.time.LocalDateTime;
         @Index(name = "idx_dest_account", columnList = "destination_account_id"),
         @Index(name = "idx_transaction_date", columnList = "transaction_date")
 })
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Transaction {
     @Id
     @UuidGenerator

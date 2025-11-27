@@ -5,7 +5,8 @@ import com.example.corebankingservice.dto.request.CreateCifRequest;
 import com.example.corebankingservice.dto.request.UpdateCifStatusRequest;
 import com.example.corebankingservice.dto.response.CifResponse;
 import com.example.corebankingservice.dto.response.CifStatusResponse;
-import com.example.corebankingservice.service.CifService;
+import com.example.corebankingservice.service.impl.CifServiceImpl;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "CIF Management", description = "Core Banking CIF Management APIs")
 public class CifController {
 
-    private final CifService cifService;
+    private final CifServiceImpl cifService;
 
     @PostMapping("/create")
     @Operation(summary = "Create new CIF", description = "Create a new CIF in Core Banking System")

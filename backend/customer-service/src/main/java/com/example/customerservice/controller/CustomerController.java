@@ -2,14 +2,15 @@ package com.example.customerservice.controller;
 
 import com.example.commonapi.dto.ApiResponse;
 import com.example.customerservice.dto.request.CustomerRegisterRequest;
-import com.example.customerservice.dto.response.CustomerResponse;
 import com.example.customerservice.dto.request.CustomerUpdateRequest;
+import com.example.customerservice.dto.response.CustomerResponse;
 import com.example.customerservice.dto.response.CustomerValidationResponse;
 import com.example.customerservice.dto.response.EkycResponse;
 import com.example.customerservice.service.CustomerService;
 import com.example.customerservice.service.EkycService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/customers")
 @RequiredArgsConstructor
+@Slf4j
 public class CustomerController {
 
     private final CustomerService customerService;
@@ -57,14 +59,16 @@ public class CustomerController {
         boolean isValid = true;
         String message = "Customer is valid";
         
-        if (checkActiveStatus && !"ACTIVE".equals(customer.getStatus())) {
+        if (checkActiveStatus) {
+            log.warn("checkActiveStatus requested but customer status is managed by core banking; skipping local validation for customer {}", customer.getCustomerId());
             isValid = false;
-            message = "Customer is not active";
+            message = "Customer active status managed in core banking";
         }
         
-        if (checkKycStatus && !"VERIFIED".equals(customer.getKycStatus())) {
+        if (checkKycStatus) {
+            log.warn("checkKycStatus requested but customer KYC is managed by core banking; skipping local validation for customer {}", customer.getCustomerId());
             isValid = false;
-            message = message.equals("Customer is valid") ? "Customer KYC not verified" : message + " and KYC not verified";
+            message = message.equals("Customer is valid") ? "Customer KYC verification managed in core banking" : message + "; KYC verification managed in core banking";
         }
         
         CustomerValidationResponse validationResponse = CustomerValidationResponse.builder()
@@ -72,8 +76,8 @@ public class CustomerController {
                 .valid(isValid)
                 .message(message)
                 .customerName(customer.getFullName())
-                .cifNumber(customer.getCoreBankingId())
-                .status(customer.getStatus().toString())
+                .cifNumber(customer.getCifNumber())
+                .status("MANAGED_BY_CORE_BANKING")
                 .build();
         
         ApiResponse<CustomerValidationResponse> response = ApiResponse.success("Customer validation completed", validationResponse);
@@ -90,8 +94,8 @@ public class CustomerController {
                 .valid(true)
                 .message("Customer found")
                 .customerName(customer.getFullName())
-                .cifNumber(customer.getCoreBankingId())
-                .status(customer.getStatus().toString())
+                .cifNumber(customer.getCifNumber())
+                .status("MANAGED_BY_CORE_BANKING")
                 .build();
         
         ApiResponse<CustomerValidationResponse> response = ApiResponse.success("Customer retrieved", validationResponse);

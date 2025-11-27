@@ -6,6 +6,7 @@ import com.example.corebankingservice.entity.enums.RiskLevel;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -15,8 +16,16 @@ public class CifResponse {
     private String cifNumber;
     private String customerName;
     private String username;
+    private String nationalId;
+    private String nationality;
+    private LocalDate issueDateNationalId;
+    private String placeOfIssueNationalId;
+    private String occupation;
+    private String position;
     private CustomerStatus customerStatus;
     private KycStatus kycStatus;
     private RiskLevel riskLevel;
+    private LocalDateTime lastTransactionDate;
     private LocalDateTime createdDate;
+    private LocalDateTime updatedDate;
 }

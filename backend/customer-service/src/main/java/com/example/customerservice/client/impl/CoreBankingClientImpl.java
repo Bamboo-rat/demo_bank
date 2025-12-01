@@ -6,6 +6,12 @@ import com.example.customerservice.dto.response.CreateCoreCustomerResponse;
 import com.example.customerservice.exception.CoreBankingException;
 import com.example.customerservice.exception.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryRegistry;
+import io.github.resilience4j.timelimiter.TimeLimiter;
+import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -20,6 +26,9 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 @Component
 @RequiredArgsConstructor
@@ -28,11 +37,50 @@ public class CoreBankingClientImpl implements CoreBankingClient {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
+    private final RetryRegistry retryRegistry;
+    private final TimeLimiterRegistry timeLimiterRegistry;
 
     @Override
     public CreateCoreCustomerResponse createCoreCustomer(CreateCoreCustomerRequest request) {
+        return executeWithResilience("core-create-customer", () -> doCreateCoreCustomer(request));
+    }
+
+    @Override
+    public void deleteCoreCustomer(String coreCustomerId) {
         try {
-            log.info("Creating core customer for username: {}", request.getUsername());
+            executeWithResilience("core-delete-customer", () -> doDeleteCoreCustomer(coreCustomerId));
+        } catch (Exception e) {
+            log.error("Error deleting core customer with ID: {}", coreCustomerId, e);
+            // Don't throw exception for delete operation in rollback scenario
+        }
+    }
+
+    // ===== Internal execution with Resilience4j (CB + Retry + TimeLimiter) =====
+    private <T> T executeWithResilience(String name, Supplier<T> supplier) {
+        CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker(name);
+        Retry retry = retryRegistry.retry(name);
+        TimeLimiter tl = timeLimiterRegistry.timeLimiter(name);
+
+        Supplier<T> withCb = CircuitBreaker.decorateSupplier(cb, supplier);
+        Supplier<T> withRetry = Retry.decorateSupplier(retry, withCb);
+
+        try {
+            CompletableFuture<T> future = CompletableFuture.supplyAsync(withRetry);
+            return tl.executeFutureSupplier(() -> future);
+        } catch (TimeoutException te) {
+            log.error("Operation {} timed out", name, te);
+            throw new RuntimeException("Core operation timed out: " + name, te);
+        } catch (Exception e) {
+            log.error("Operation {} failed", name, e);
+            throw (e instanceof RuntimeException re) ? re : new RuntimeException("Core operation failed: " + name, e);
+        }
+    }
+
+    // ===== Raw REST calls (decorated by executeWithResilience) =====
+    private CreateCoreCustomerResponse doCreateCoreCustomer(CreateCoreCustomerRequest request) {
+        try {
+            log.info("Calling core to create customer for username: {}", request.getUsername());
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -46,7 +94,6 @@ public class CoreBankingClientImpl implements CoreBankingClient {
             );
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                // Parse the API response wrapper
                 Map<String, Object> responseBody = (Map<String, Object>) response.getBody();
                 Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
 
@@ -77,28 +124,22 @@ public class CoreBankingClientImpl implements CoreBankingClient {
         }
     }
 
-    @Override
-    public void deleteCoreCustomer(String coreCustomerId) {
-        try {
-            log.info("Deleting core customer with ID: {}", coreCustomerId);
+    private Void doDeleteCoreCustomer(String coreCustomerId) {
+        log.info("Calling core to delete customer with ID: {}", coreCustomerId);
 
-            ResponseEntity<Void> response = restTemplate.exchange(
-                    "/api/cif/{cifId}",
-                    HttpMethod.DELETE,
-                    null,
-                    Void.class,
-                    coreCustomerId
-            );
+        ResponseEntity<Void> response = restTemplate.exchange(
+                "/api/cif/{cifId}",
+                HttpMethod.DELETE,
+                null,
+                Void.class,
+                coreCustomerId
+        );
 
-            if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("Successfully deleted core customer with ID: {}", coreCustomerId);
-            } else {
-                log.warn("Failed to delete core customer with ID: {}", coreCustomerId);
-            }
-
-        } catch (Exception e) {
-            log.error("Error deleting core customer with ID: {}", coreCustomerId, e);
-            // Don't throw exception for delete operation in rollback scenario
+        if (response.getStatusCode().is2xxSuccessful()) {
+            log.info("Successfully deleted core customer with ID: {}", coreCustomerId);
+        } else {
+            log.warn("Failed to delete core customer with ID: {}", coreCustomerId);
         }
+        return null;
     }
 }

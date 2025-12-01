@@ -50,15 +50,6 @@ public class GlobalExceptionHandler {
         return handleBaseException(ex, request);
     }
 
-    @ExceptionHandler(AccountNumberGenerationException.class)
-    public ResponseEntity<ErrorResponse> handleAccountNumberGenerationException(AccountNumberGenerationException ex, WebRequest request) {
-        return handleBaseException(ex, request);
-    }
-
-    @ExceptionHandler(InvalidAccountTypeException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidAccountTypeException(InvalidAccountTypeException ex, WebRequest request) {
-        return handleBaseException(ex, request);
-    }
 
     @ExceptionHandler(AccountCreationException.class)
     public ResponseEntity<ErrorResponse> handleAccountCreationException(AccountCreationException ex, WebRequest request) {

@@ -68,11 +68,6 @@ public class AccountServiceImpl implements AccountService {
             // 2. Check account limits (local policy)
             validateAccountLimits(request.getCustomerId(), request.getAccountType());
 
-            // 3. Delegate to Core for opening (CHECKING/SAVINGS/CREDIT)
-            if (request.getAccountType() == AccountType.LOAN) {
-                throw new UnsupportedOperationException("Loan accounts must be created through Loan Service");
-            }
-
             OpenAccountCoreRequest coreReq = OpenAccountCoreRequest.builder()
                     .cifNumber(customer.getCifNumber())
                     .accountType(request.getAccountType())

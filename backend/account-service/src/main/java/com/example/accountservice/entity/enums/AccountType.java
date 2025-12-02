@@ -11,7 +11,7 @@ public enum AccountType {
     CHECKING(
         "account.type.checking.name",
         "account.type.checking.description",
-        new BigDecimal("10000"),      // 10K VND minimum balance
+        new BigDecimal("2000"),      // 2K VND minimum balance
         new BigDecimal("500000000"),  // 500M VND daily limit
         true                           // Free transfers
     ),
@@ -28,13 +28,6 @@ public enum AccountType {
         BigDecimal.ZERO,               // No minimum balance
         new BigDecimal("1000000000"), // 1B VND daily limit
         false                          // No free transfers
-    ),
-    LOAN(
-        "account.type.loan.name",
-        "account.type.loan.description",
-        BigDecimal.ZERO,               // No minimum balance
-        new BigDecimal("100000000"),  // 100M VND daily limit
-        false                          // No free transfers
     );
 
     private final String nameMessageCode;
@@ -48,7 +41,7 @@ public enum AccountType {
      * @return true if overdraft is allowed
      */
     public boolean allowsOverdraft() {
-        return this == CREDIT || this == LOAN;
+        return this == CREDIT;
     }
 
     /**

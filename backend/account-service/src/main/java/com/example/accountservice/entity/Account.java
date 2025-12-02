@@ -31,6 +31,9 @@ public abstract class Account {
     @Column(nullable = false, updatable = false)
     private String customerId; // UUID của khách hàng từ Customer Service
 
+    @Column(nullable = false, updatable = false, length = 50)
+    private String cifNumber; // CIF Number từ Core Banking System
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AccountType accountType; // Loại tài khoản (Thanh toán, Tiết kiệm, Tín dụng)

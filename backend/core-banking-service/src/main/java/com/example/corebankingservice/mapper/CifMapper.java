@@ -20,7 +20,11 @@ public interface CifMapper {
     @Mapping(target = "version", ignore = true)
     CIF_Master toNewEntity(CreateCifRequest request, String cifNumber);
 
+    @Mapping(target = "accountNumber", ignore = true)
     CifResponse toResponse(CIF_Master cif);
+
+    @Mapping(target = "accountNumber", source = "accountNumber")
+    CifResponse toResponseWithAccount(CIF_Master cif, String accountNumber);
 
     @Mapping(target = "cifNumber", source = "cif.cifNumber")
     @Mapping(target = "customerName", source = "cif.customerName")

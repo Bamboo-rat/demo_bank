@@ -20,12 +20,15 @@ import com.example.corebankingservice.service.AccountLifecycleService;
 import com.example.corebankingservice.service.AccountNumberGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 @Service
@@ -39,6 +42,7 @@ public class AccountLifecycleServiceImpl implements AccountLifecycleService {
     private final TransactionRepository transactionRepository;
     private final AccountMapper accountMapper;
     private final AccountNumberGenerator accountNumberGenerator;
+    private final MessageSource messageSource;
 
     @Override
     public AccountDetailResponse openAccount(OpenAccountCoreRequest request) {
@@ -76,10 +80,10 @@ public class AccountLifecycleServiceImpl implements AccountLifecycleService {
     public AccountDetailResponse freezeAccount(String accountNumber, AccountLifecycleActionRequest request) {
         Account account = getAccountForUpdate(accountNumber);
         if (account.getStatus() == AccountStatus.CLOSED) {
-            throw new BusinessException("Cannot freeze a closed account");
+            throw new BusinessException(getMessage("error.account.cannot.freeze.closed"));
         }
         if (account.getStatus() == AccountStatus.BLOCKED) {
-            throw new BusinessException("Account is legally blocked; cannot apply freeze");
+            throw new BusinessException(getMessage("error.account.cannot.freeze.blocked"));
         }
         if (account.getStatus() == AccountStatus.FROZEN) {
             return accountMapper.toDetail(account);
@@ -99,7 +103,7 @@ public class AccountLifecycleServiceImpl implements AccountLifecycleService {
     public AccountDetailResponse unfreezeAccount(String accountNumber, AccountLifecycleActionRequest request) {
         Account account = getAccountForUpdate(accountNumber);
         if (account.getStatus() != AccountStatus.FROZEN) {
-            throw new BusinessException("Account is not frozen");
+            throw new BusinessException(getMessage("error.account.not.frozen"));
         }
 
         AccountStatus previousStatus = account.getStatus();
@@ -116,7 +120,7 @@ public class AccountLifecycleServiceImpl implements AccountLifecycleService {
     public AccountDetailResponse blockAccount(String accountNumber, AccountLifecycleActionRequest request) {
         Account account = getAccountForUpdate(accountNumber);
         if (account.getStatus() == AccountStatus.CLOSED) {
-            throw new BusinessException("Cannot block a closed account");
+            throw new BusinessException(getMessage("error.account.cannot.block.closed"));
         }
         if (account.getStatus() == AccountStatus.BLOCKED) {
             return accountMapper.toDetail(account);
@@ -136,7 +140,7 @@ public class AccountLifecycleServiceImpl implements AccountLifecycleService {
     public AccountDetailResponse unblockAccount(String accountNumber, AccountLifecycleActionRequest request) {
         Account account = getAccountForUpdate(accountNumber);
         if (account.getStatus() != AccountStatus.BLOCKED) {
-            throw new BusinessException("Account is not blocked");
+            throw new BusinessException(getMessage("error.account.not.blocked"));
         }
 
         AccountStatus previousStatus = account.getStatus();
@@ -161,7 +165,7 @@ public class AccountLifecycleServiceImpl implements AccountLifecycleService {
     public AccountDetailResponse updateAccountStatus(String accountNumber, AccountStatusUpdateRequest request) {
         Account account = getAccountForUpdate(accountNumber);
         if (account.getStatus() == AccountStatus.CLOSED) {
-            throw new BusinessException("Cannot change status of a closed account");
+            throw new BusinessException(getMessage("error.account.status.closed"));
         }
 
         AccountStatus previousStatus = account.getStatus();
@@ -196,24 +200,24 @@ public class AccountLifecycleServiceImpl implements AccountLifecycleService {
 
     private void validateClosable(Account account) {
         if (account.getStatus() == AccountStatus.CLOSED) {
-            throw new BusinessException("Account already closed");
+            throw new BusinessException(getMessage("error.account.already.closed"));
         }
         if (account.getStatus() == AccountStatus.BLOCKED) {
-            throw new BusinessException("Account is legally blocked; cannot close");
+            throw new BusinessException(getMessage("error.account.cannot.close.blocked"));
         }
         if (account.getBalance().compareTo(BigDecimal.ZERO) != 0) {
-            throw new BusinessException("Account balance must be zero before closure");
+            throw new BusinessException(getMessage("error.account.cannot.close.balance"));
         }
         if (account.getHoldAmount().compareTo(BigDecimal.ZERO) > 0) {
-            throw new BusinessException("Account has held funds and cannot be closed");
+            throw new BusinessException(getMessage("error.account.cannot.close.hold"));
         }
         if (account.isAmlFlag()) {
-            throw new BusinessException("Account is under AML review");
+            throw new BusinessException(getMessage("error.account.cannot.close.aml"));
         }
         boolean hasPending = transactionRepository.existsBySourceAccountIdAndStatus(account.getAccountId(), TransactionStatus.PENDING)
                 || transactionRepository.existsByDestinationAccountIdAndStatus(account.getAccountId(), TransactionStatus.PENDING);
         if (hasPending) {
-            throw new BusinessException("Account has pending transactions");
+            throw new BusinessException(getMessage("error.account.cannot.close.pending"));
         }
     }
 
@@ -227,5 +231,10 @@ public class AccountLifecycleServiceImpl implements AccountLifecycleService {
                 .performedBy(performedBy)
                 .build();
         historyRepository.save(history);
+    }
+
+    private String getMessage(String code) {
+        Locale locale = LocaleContextHolder.getLocale();
+        return messageSource.getMessage(code, null, code, locale);
     }
 }

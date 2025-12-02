@@ -25,6 +25,7 @@ public class CifResponse {
     private CustomerStatus customerStatus;
     private KycStatus kycStatus;
     private RiskLevel riskLevel;
+    private String accountNumber; 
     private LocalDateTime lastTransactionDate;
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;

@@ -1,10 +1,14 @@
 package com.example.corebankingservice.service.impl;
 
 import com.example.corebankingservice.dto.request.CreateCifRequest;
+import com.example.corebankingservice.dto.request.OpenAccountCoreRequest;
 import com.example.corebankingservice.dto.request.UpdateCifStatusRequest;
+import com.example.corebankingservice.dto.response.AccountDetailResponse;
 import com.example.corebankingservice.dto.response.CifResponse;
 import com.example.corebankingservice.dto.response.CifStatusResponse;
 import com.example.corebankingservice.entity.CIF_Master;
+import com.example.corebankingservice.entity.enums.AccountType;
+import com.example.corebankingservice.entity.enums.Currency;
 import com.example.corebankingservice.entity.enums.CustomerStatus;
 import com.example.corebankingservice.entity.enums.KycStatus;
 import com.example.corebankingservice.entity.enums.RiskLevel;
@@ -12,15 +16,19 @@ import com.example.corebankingservice.exception.BusinessException;
 import com.example.corebankingservice.exception.ResourceNotFoundException;
 import com.example.corebankingservice.mapper.CifMapper;
 import com.example.corebankingservice.repository.CifMasterRepository;
+import com.example.corebankingservice.service.AccountLifecycleService;
 import com.example.corebankingservice.service.CifService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.Random;
 
 @Service
@@ -31,6 +39,8 @@ public class CifServiceImpl implements CifService{
 
     private final CifMasterRepository cifMasterRepository;
     private final CifMapper cifMapper;
+    private final AccountLifecycleService accountLifecycleService;
+    private final MessageSource messageSource;
     private static final String CIF_PREFIX = "CIF";
 
     /**
@@ -42,11 +52,11 @@ public class CifServiceImpl implements CifService{
 
         // Validate unique constraints
         if (cifMasterRepository.existsByUsername(request.getUsername())) {
-            throw new BusinessException("Username already exists: " + request.getUsername());
+            throw new BusinessException(getMessage("error.customer.username.exists"));
         }
 
         if (cifMasterRepository.existsByNationalId(request.getNationalId())) {
-            throw new BusinessException("National ID already registered: " + request.getNationalId());
+            throw new BusinessException(getMessage("error.customer.nationalid.exists"));
         }
 
         // Generate CIF Number
@@ -58,7 +68,29 @@ public class CifServiceImpl implements CifService{
         CIF_Master savedCif = cifMasterRepository.save(cif);
         log.info("CIF created successfully with number: {}", cifNumber);
 
-        return cifMapper.toResponse(savedCif);
+        try {
+            log.info("Auto opening CASA account for CIF: {}", cifNumber);
+            OpenAccountCoreRequest casaRequest = OpenAccountCoreRequest.builder()
+                    .cifNumber(cifNumber)
+                    .accountType(AccountType.CHECKING)
+                    .currency(Currency.VND)
+                    .createdBy("SYSTEM")
+                    .description("Auto-created CASA account during customer registration")
+                    .build();
+            
+            AccountDetailResponse casaAccount = accountLifecycleService.openAccount(casaRequest);
+            log.info("CASA account {} opened successfully for CIF {}", casaAccount.getAccountNumber(), cifNumber);
+            
+            // TODO: Publish AccountCreatedEvent to Kafka for AccountService to sync metadata
+            
+            return cifMapper.toResponseWithAccount(savedCif, casaAccount.getAccountNumber());
+            
+        } catch (Exception e) {
+            log.error("Failed to auto-create CASA account for CIF: {}", cifNumber, e);
+            // Note: CIF is already created, this is logged but not rolled back
+            // Consider implementing saga pattern or compensation logic if needed
+            return cifMapper.toResponse(savedCif);
+        }
     }
 
     /**
@@ -70,7 +102,7 @@ public class CifServiceImpl implements CifService{
         log.info("Getting CIF status for: {}", cifNumber);
 
         CIF_Master cif = cifMasterRepository.findByCifNumber(cifNumber)
-                .orElseThrow(() -> new ResourceNotFoundException("CIF not found: " + cifNumber));
+                .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.cif.not.found")));
 
         return cifMapper.toStatusResponse(cif, canTransact(cif));
     }
@@ -83,7 +115,7 @@ public class CifServiceImpl implements CifService{
         log.info("Updating CIF status for: {} to {}", cifNumber, request.getAction());
 
         CIF_Master cif = cifMasterRepository.findByCifNumber(cifNumber)
-                .orElseThrow(() -> new ResourceNotFoundException("CIF not found: " + cifNumber));
+                .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.cif.not.found")));
 
         CustomerStatus newStatus = mapActionToStatus(request.getAction());
         CustomerStatus oldStatus = cif.getCustomerStatus();
@@ -141,13 +173,18 @@ public class CifServiceImpl implements CifService{
     private void validateStatusTransition(CustomerStatus current, CustomerStatus target) {
         // Cannot reactivate closed account
         if (current == CustomerStatus.CLOSED && target != CustomerStatus.CLOSED) {
-            throw new BusinessException("Cannot reactivate closed account");
+            throw new BusinessException(getMessage("error.customer.cannot.reactivate.closed"));
         }
 
         // Cannot directly close blocked account
         if (current == CustomerStatus.BLOCKED && target == CustomerStatus.CLOSED) {
-            throw new BusinessException("Must unblock account before closing");
+            throw new BusinessException(getMessage("error.customer.cannot.close.blocked"));
         }
+    }
+
+    private String getMessage(String code) {
+        Locale locale = LocaleContextHolder.getLocale();
+        return messageSource.getMessage(code, null, code, locale);
     }
 
 }

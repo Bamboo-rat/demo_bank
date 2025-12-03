@@ -8,6 +8,7 @@ public class CreateCoreCustomerResponse {
     private String cifNumber;
     private String customerName;
     private String username;
+    private String accountNumber;
     public String getCoreCustomerId() {
         return cifId;
     }

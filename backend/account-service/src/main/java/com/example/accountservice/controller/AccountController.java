@@ -1,8 +1,6 @@
 package com.example.accountservice.controller;
 
 import com.example.accountservice.client.CustomerServiceClient;
-import com.example.accountservice.dto.request.CloseAccountRequest;
-import com.example.accountservice.dto.request.OpenAccountRequest;
 import com.example.accountservice.dto.request.UpdateAccountRequest;
 import com.example.accountservice.dto.response.AccountListResponse;
 import com.example.accountservice.dto.response.AccountResponse;
@@ -22,14 +20,16 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * REST Controller for Account Management Operations
+ * REST Controller for Account Management Operations (Read-Only)
  *
  * Provides endpoints for:
- * - Opening new accounts
  * - Viewing account details
  * - Listing customer accounts
- * - Closing accounts
  * - Checking account balance
+ * - Updating account metadata
+ *
+ * Note: Account creation/closure is handled by CustomerService orchestrator
+ * calling CoreBankingService, then syncing metadata to AccountService via Dubbo.
  */
 @RestController
 @RequestMapping("/api/accounts")
@@ -39,37 +39,6 @@ public class AccountController {
 
     private final AccountService accountService;
     private final CustomerServiceClient customerServiceClient;
-
-    /**
-     * Open a new account for authenticated customer
-     *
-     * POST /api/accounts
-     *
-     * Security: Requires USER role
-     * User must be authenticated via JWT token
-     * CustomerId is extracted from JWT token
-     */
-    @PostMapping
-    public ResponseEntity<ApiResponse<AccountResponse>> openAccount(
-            @Valid @RequestBody OpenAccountRequest request) {
-
-        log.info("Request to open {} account", request.getAccountType());
-
-        // Validate customerId matches authenticated user
-        String authenticatedCustomerId = getAuthenticatedCustomerId();
-        if (!request.getCustomerId().equals(authenticatedCustomerId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(ApiResponse.error("Cannot open account for another customer"));
-        }
-
-        AccountResponse response = accountService.openAccount(request);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(
-                    "Account opened successfully",
-                    response
-                ));
-    }
 
     /**
      * Get account details by account number
@@ -127,37 +96,6 @@ public class AccountController {
                 String.format("Found %d account(s)", accounts.size()),
                 response
             )
-        );
-    }
-
-    /**
-     * Close an account
-     *
-     * DELETE /api/accounts/{accountNumber}
-     *
-     * Security: Requires USER role
-     * Can only close own accounts
-     * Account must have zero balance
-     */
-    @DeleteMapping("/{accountNumber}")
-    public ResponseEntity<ApiResponse<Void>> closeAccount(
-            @PathVariable String accountNumber,
-            @RequestBody(required = false) CloseAccountRequest request) {
-
-        String customerId = getAuthenticatedCustomerId();
-        log.info("Request to close account: {} for customer: {}", accountNumber, customerId);
-
-        // Verify account ownership before closing
-        AccountResponse account = accountService.getAccountDetails(accountNumber);
-        if (!account.getCustomerId().equals(customerId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(ApiResponse.error("Cannot close account belonging to another customer"));
-        }
-
-        accountService.closeAccount(accountNumber, customerId);
-
-        return ResponseEntity.ok(
-            ApiResponse.success("Account closed successfully", null)
         );
     }
 

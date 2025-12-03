@@ -59,10 +59,8 @@ public class CifServiceImpl implements CifService{
             throw new BusinessException(getMessage("error.customer.nationalid.exists"));
         }
 
-        // Generate CIF Number
         String cifNumber = generateCifNumber();
 
-        // Create CIF entity
         CIF_Master cif = cifMapper.toNewEntity(request, cifNumber);
 
         CIF_Master savedCif = cifMasterRepository.save(cif);
@@ -80,8 +78,6 @@ public class CifServiceImpl implements CifService{
             
             AccountDetailResponse casaAccount = accountLifecycleService.openAccount(casaRequest);
             log.info("CASA account {} opened successfully for CIF {}", casaAccount.getAccountNumber(), cifNumber);
-            
-            // TODO: Publish AccountCreatedEvent to Kafka for AccountService to sync metadata
             
             return cifMapper.toResponseWithAccount(savedCif, casaAccount.getAccountNumber());
             

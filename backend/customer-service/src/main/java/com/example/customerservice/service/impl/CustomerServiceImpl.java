@@ -1,15 +1,19 @@
 package com.example.customerservice.service.impl;
 
+import com.example.accountservice.dto.dubbo.AccountSyncRequest;
+import com.example.accountservice.dto.dubbo.AccountSyncResult;
+import com.example.commonapi.dto.ApiResponse;
+import com.example.customerservice.client.CoreBankingFeignClient;
 import com.example.customerservice.dto.request.CreateCoreCustomerRequest;
 import com.example.customerservice.dto.request.CustomerLoginDTO;
 import com.example.customerservice.dto.request.CustomerRegisterRequest;
 import com.example.customerservice.dto.request.CustomerUpdateRequest;
 import com.example.customerservice.dto.response.CreateCoreCustomerResponse;
 import com.example.customerservice.dto.response.CustomerResponse;
+import com.example.customerservice.events.producer.AccountSyncProducer;
 import com.example.customerservice.entity.Customer;
 import com.example.customerservice.entity.enums.KycStatus;
 import com.example.customerservice.entity.enums.RiskLevel;
-import com.example.customerservice.exception.CoreBankingException;
 import com.example.customerservice.exception.CustomerAlreadyExistsException;
 import com.example.customerservice.exception.CustomerNotFoundException;
 import com.example.customerservice.exception.ErrorCode;
@@ -17,14 +21,17 @@ import com.example.customerservice.exception.CustomerRegistrationException;
 import com.example.customerservice.mapper.AddressMapper;
 import com.example.customerservice.mapper.CustomerMapper;
 import com.example.customerservice.repository.CustomerRepository;
-import com.example.customerservice.client.CoreBankingClient;
 import com.example.customerservice.service.CustomerService;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +40,8 @@ public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
     private final KeycloakService keycloakService;
-    private final CoreBankingClient coreBankingClient;
+    private final CoreBankingFeignClient coreBankingFeignClient;
+    private final AccountSyncProducer accountSyncProducer;
     private final CustomerMapper customerMapper;
     private final AddressMapper addressMapper;
 
@@ -43,6 +51,7 @@ public class CustomerServiceImpl implements CustomerService {
 
         String authProviderId = null;
         String coreCustomerId = null;
+        String accountNumber = null;
         Customer savedCustomer = null;
 
         try {
@@ -51,8 +60,8 @@ public class CustomerServiceImpl implements CustomerService {
             authProviderId = keycloakService.createUser(registerDto);
             log.info("Successfully created Keycloak user with ID: {}", authProviderId);
 
-            // Step 2: Create customer in Core Banking System (CIF)
-            log.info("Step 2: Creating customer in Core Banking System");
+            // Step 2: Create CIF in Core Banking
+            log.info("Step 2: Creating CIF in Core Banking System");
             CreateCoreCustomerRequest coreRequest = CreateCoreCustomerRequest.builder()
                     .customerName(registerDto.getFullName())
                     .username(registerDto.getPhoneNumber())
@@ -61,9 +70,17 @@ public class CustomerServiceImpl implements CustomerService {
                     .riskLevel(RiskLevel.LOW)
                     .build();
 
-            CreateCoreCustomerResponse coreResponse = coreBankingClient.createCoreCustomer(coreRequest);
+            ApiResponse<CreateCoreCustomerResponse> coreApiResponse = coreBankingFeignClient.createCif(coreRequest);
+            
+            if (coreApiResponse == null || !coreApiResponse.isSuccess() || coreApiResponse.getData() == null) {
+                throw new CustomerRegistrationException(ErrorCode.REGISTRATION_FAILED, 
+                    null, new RuntimeException("Core Banking returned invalid response"));
+            }
+            
+            CreateCoreCustomerResponse coreResponse = coreApiResponse.getData();
             coreCustomerId = coreResponse.getCoreCustomerId();
-            log.info("Successfully created core customer with ID: {}", coreCustomerId);
+            accountNumber = coreResponse.getAccountNumber();
+            log.info("Successfully created CIF: {}, CASA account: {}", coreResponse.getCifNumber(), accountNumber);
 
             // Step 3: Save customer in local database
             log.info("Step 3: Saving customer in local database");
@@ -79,6 +96,34 @@ public class CustomerServiceImpl implements CustomerService {
                 log.warn("Failed to update customerId to Keycloak attributes", e);
             }
             log.info("Successfully saved customer in database with ID: {}", savedCustomer.getCustomerId());
+
+            // Step 4: Sync account metadata to AccountService via Dubbo
+            if (accountNumber != null && !accountNumber.isBlank()) {
+                try {
+                    log.info("Step 4: Syncing account metadata to AccountService via Dubbo");
+                    AccountSyncRequest syncRequest = AccountSyncRequest.builder()
+                            .accountNumber(accountNumber)
+                            .customerId(savedCustomer.getCustomerId())
+                            .cifNumber(coreResponse.getCifNumber())
+                            .accountType("CHECKING")
+                            .currency("VND")
+                            .status("ACTIVE")
+                            .balance(BigDecimal.ZERO)
+                            .openedAt(LocalDateTime.now())
+                            .build();
+                    
+                    AccountSyncResult syncResult = accountSyncProducer.syncAccountMetadata(syncRequest);
+                    
+                    if (syncResult.isSuccess()) {
+                        log.info("Successfully synced account metadata to AccountService: accountId={}", syncResult.getAccountId());
+                    } else {
+                        log.warn("Account sync returned success=false: {}", syncResult.getMessage());
+                    }
+                } catch (Exception e) {
+                    // Log but don't fail registration if Dubbo sync fails
+                    log.error("Failed to sync account metadata to AccountService, but registration completed", e);
+                }
+            }
 
             return customerMapper.toResponse(savedCustomer);
 
@@ -118,7 +163,7 @@ public class CustomerServiceImpl implements CustomerService {
             if (coreCustomerId != null) {
                 try {
                     log.info("Rollback Step 2: Deleting customer from Core Banking");
-                    coreBankingClient.deleteCoreCustomer(coreCustomerId);
+                    coreBankingFeignClient.deleteCif(coreCustomerId);
                 } catch (Exception rollbackException) {
                     log.error("Failed to rollback Core Banking customer", rollbackException);
                 }
@@ -134,8 +179,9 @@ public class CustomerServiceImpl implements CustomerService {
                 }
             }
 
-            if (e instanceof CoreBankingException) {
-                throw e;
+            if (e instanceof FeignException) {
+                throw new CustomerRegistrationException(ErrorCode.REGISTRATION_FAILED, 
+                    null, new RuntimeException("Core Banking service error: " + e.getMessage(), e));
             }
             throw new CustomerRegistrationException(ErrorCode.REGISTRATION_FAILED, null, e);
         }
@@ -228,7 +274,7 @@ public class CustomerServiceImpl implements CustomerService {
         if (coreCustomerId != null) {
             try {
                 log.info("Rollback: Deleting customer from Core Banking");
-                coreBankingClient.deleteCoreCustomer(coreCustomerId);
+                coreBankingFeignClient.deleteCif(coreCustomerId);
             } catch (Exception rollbackException) {
                 log.error("Failed to rollback Core Banking customer", rollbackException);
             }

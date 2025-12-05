@@ -10,7 +10,7 @@ import com.example.customerservice.dto.request.CustomerRegisterRequest;
 import com.example.customerservice.dto.request.CustomerUpdateRequest;
 import com.example.customerservice.dto.response.CreateCoreCustomerResponse;
 import com.example.customerservice.dto.response.CustomerResponse;
-import com.example.customerservice.events.producer.AccountSyncProducer;
+import com.example.customerservice.events.consumer.AccountSyncConsumer;
 import com.example.customerservice.entity.Customer;
 import com.example.customerservice.entity.enums.KycStatus;
 import com.example.customerservice.entity.enums.RiskLevel;
@@ -41,7 +41,7 @@ public class CustomerServiceImpl implements CustomerService {
     private final CustomerRepository customerRepository;
     private final KeycloakService keycloakService;
     private final CoreBankingFeignClient coreBankingFeignClient;
-    private final AccountSyncProducer accountSyncProducer;
+    private final AccountSyncConsumer accountSyncConsumer;
     private final CustomerMapper customerMapper;
     private final AddressMapper addressMapper;
 
@@ -112,7 +112,7 @@ public class CustomerServiceImpl implements CustomerService {
                             .openedAt(LocalDateTime.now())
                             .build();
                     
-                    AccountSyncResult syncResult = accountSyncProducer.syncAccountMetadata(syncRequest);
+                    AccountSyncResult syncResult = accountSyncConsumer.syncAccountMetadata(syncRequest);
                     
                     if (syncResult.isSuccess()) {
                         log.info("Successfully synced account metadata to AccountService: accountId={}", syncResult.getAccountId());

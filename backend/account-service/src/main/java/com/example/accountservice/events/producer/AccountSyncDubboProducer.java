@@ -1,12 +1,13 @@
-package com.example.accountservice.events.consumer;
+package com.example.accountservice.events.producer;
 
 import com.example.accountservice.dto.dubbo.AccountSyncRequest;
 import com.example.accountservice.dto.dubbo.AccountSyncResult;
 
 /**
- * Dubbo RPC service for syncing account metadata from CustomerService
+ * Dubbo service producer - Account-service provides this service
+ * CustomerService consumes this service to sync account metadata
  */
-public interface AccountSyncDubboService {
+public interface AccountSyncDubboProducer {
 
     /**
      * Sync account metadata when account is created in CoreBank

@@ -1,23 +1,22 @@
-package com.example.customerservice.events.producer;
+package com.example.customerservice.events.consumer;
 
 import com.example.accountservice.dto.dubbo.AccountSyncRequest;
 import com.example.accountservice.dto.dubbo.AccountSyncResult;
-import com.example.accountservice.events.consumer.AccountSyncDubboService;
+import com.example.accountservice.events.producer.AccountSyncDubboProducer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Component;
 
 /**
- * Dubbo producer for AccountSyncDubboService
- * 
- * Calls account-service to sync account metadata after CoreBank creates account
+ * Dubbo consumer - calls AccountService to sync account metadata
+ * Customer-service consumes the Dubbo service provided by Account-service
  */
 @Component
 @Slf4j
-public class AccountSyncProducer {
+public class AccountSyncConsumer {
 
     @DubboReference(version = "1.0.0", group = "banking-services", check = false, timeout = 5000)
-    private AccountSyncDubboService accountSyncDubboService;
+    private AccountSyncDubboProducer accountSyncDubboProducer;
 
     /**
      * Sync account metadata to account-service via Dubbo RPC
@@ -29,7 +28,7 @@ public class AccountSyncProducer {
         log.info("Syncing account metadata via Dubbo for accountNumber: {}", request.getAccountNumber());
         
         try {
-            AccountSyncResult result = accountSyncDubboService.syncAccountMetadata(request);
+            AccountSyncResult result = accountSyncDubboProducer.syncAccountMetadata(request);
             
             if (result.isSuccess()) {
                 log.info("Successfully synced account metadata: accountNumber={}, accountId={}", 

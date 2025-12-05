@@ -101,12 +101,7 @@
 		<dependency>
 			<groupId>org.keycloak</groupId>
 			<artifactId>keycloak-admin-client</artifactId>
-			<version>26.0.6</version>
-		</dependency>
-		<dependency>
-			<groupId>org.keycloak</groupId>
-			<artifactId>keycloak-adapter-core</artifactId>
-			<version>25.0.3</version>
+			<version>${keycloak.version}</version>
 		</dependency>
 	</dependencies>
 

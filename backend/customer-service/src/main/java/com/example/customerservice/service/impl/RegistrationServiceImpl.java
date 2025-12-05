@@ -208,11 +208,15 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     private RegistrationSessionResponse toSessionResponse(RegistrationSession session) {
+        Instant expiryReference = session.getUpdatedAt() != null
+                ? session.getUpdatedAt()
+                : Optional.ofNullable(session.getCreatedAt()).orElse(Instant.now());
+
         return RegistrationSessionResponse.builder()
                 .sessionId(session.getSessionId())
                 .phoneNumber(session.getPhoneNumber())
                 .status(session.getStatus())
-                .expiresAt(Instant.now().plus(SESSION_TTL))
+                .expiresAt(expiryReference.plus(SESSION_TTL))
                 .build();
     }
 

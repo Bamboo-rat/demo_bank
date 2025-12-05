@@ -1,15 +1,30 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
+import { authService } from '~/service/authService'
 
 const Login = () => {
+  const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Đăng nhập:', { username, password, rememberMe })
+    setError('')
+    setLoading(true)
+
+    try {
+      await authService.login({ username, password })
+      // Redirect to dashboard on successful login
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đăng nhập thất bại')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -31,6 +46,14 @@ const Login = () => {
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl border border-blue-100 p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start gap-2">
+                <span className="material-icons-round text-red-500 text-xl">error</span>
+                <p className="text-sm">{error}</p>
+              </div>
+            )}
+
             {/* Username Field */}
             <div>
               <label htmlFor="username" className="block text-sm font-semibold text-dark-blue mb-2">
@@ -118,11 +141,21 @@ const Login = () => {
             {/* Login Button */}
             <button
               type="submit"
-              className="w-full bg-orange-primary hover:bg-orange-dark text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-opacity-50"
+              disabled={loading}
+              className="w-full bg-orange-primary hover:bg-orange-dark text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-orange-primary focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               <span className="flex items-center justify-center gap-2">
-                <span>Đăng nhập</span>
-                <span className="material-icons-round text-xl">arrow_forward</span>
+                {loading ? (
+                  <>
+                    <span className="material-icons-round text-xl animate-spin">refresh</span>
+                    <span>Đang xử lý...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Đăng nhập</span>
+                    <span className="material-icons-round text-xl">arrow_forward</span>
+                  </>
+                )}
               </span>
             </button>
           </form>

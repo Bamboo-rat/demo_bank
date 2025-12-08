@@ -52,7 +52,17 @@ export interface CustomerResponse {
   fullName: string
   phoneNumber: string
   email: string
+  dateOfBirth?: string
+  gender?: string
+  nationality?: string
+  nationalId?: string
+  cifNumber?: string
   status: string
+  kycStatus?: string
+  riskLevel?: string
+  createdAt?: string
+  permanentAddress?: AddressRequest
+  temporaryAddress?: AddressRequest
 }
 
 export interface AddressRequest {

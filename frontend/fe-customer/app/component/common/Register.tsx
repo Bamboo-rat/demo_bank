@@ -12,11 +12,15 @@ import {
   type RegistrationSessionResponse,
   type CustomerResponse
 } from '~/service/registrationService'
+import { validators } from '~/utils/validators'
 
 interface AddressFormData {
   province: string
+  provinceName?: string
   district: string
+  districtName?: string
   ward: string
+  wardName?: string
   street: string
 }
 
@@ -24,6 +28,7 @@ const steps = [
   { title: 'Xác thực SĐT' },
   { title: 'Thông tin cá nhân' },
   { title: 'Thông tin CCCD' },
+  { title: 'Xác thực eKYC' },
   { title: 'Hoàn tất' }
 ]
 
@@ -74,6 +79,8 @@ const Register = () => {
 
   const [session, setSession] = useState<RegistrationSessionResponse | null>(null)
   const [customerResult, setCustomerResult] = useState<CustomerResponse | null>(null)
+  const [kycVerified, setKycVerified] = useState(false)
+  const [kycVerifying, setKycVerifying] = useState(false)
 
   useEffect(() => {
     void loadProvinces()
@@ -179,7 +186,17 @@ const Register = () => {
   }
 
   const handlePermanentAddressChange = (field: keyof AddressFormData, value: string) => {
-    setPermanentAddress(prev => ({ ...prev, [field]: value }))
+    setPermanentAddress(prev => {
+      const updated = { ...prev, [field]: value }
+      if (field === 'province') {
+        updated.provinceName = addressService.findNameByCode(provinces, value)
+      } else if (field === 'district') {
+        updated.districtName = addressService.findNameByCode(districts, value)
+      } else if (field === 'ward') {
+        updated.wardName = addressService.findNameByCode(wards, value)
+      }
+      return updated
+    })
     const key = `permanentAddress.${field}`
     if (errors[key]) {
       setErrors(prev => ({ ...prev, [key]: '' }))
@@ -187,35 +204,53 @@ const Register = () => {
   }
 
   const handleTemporaryAddressChange = (field: keyof AddressFormData, value: string) => {
-    setTemporaryAddress(prev => ({ ...prev, [field]: value }))
+    setTemporaryAddress(prev => {
+      const updated = { ...prev, [field]: value }
+      // Save name along with code
+      if (field === 'province') {
+        updated.provinceName = addressService.findNameByCode(provinces, value)
+      } else if (field === 'district') {
+        updated.districtName = addressService.findNameByCode(tempDistricts, value)
+      } else if (field === 'ward') {
+        updated.wardName = addressService.findNameByCode(tempWards, value)
+      }
+      return updated
+    })
   }
 
   const buildAddressRequest = (
-    addressData: AddressFormData,
-    lookupDistricts: District[],
-    lookupWards: Ward[]
+    addressData: AddressFormData
   ): AddressRequest => ({
     street: addressData.street,
-    ward: addressService.findNameByCode(lookupWards, addressData.ward) || addressData.ward,
-    district: addressService.findNameByCode(lookupDistricts, addressData.district) || addressData.district,
-    city: addressService.findNameByCode(provinces, addressData.province) || addressData.province,
+    ward: addressData.wardName || addressData.ward,
+    district: addressData.districtName || addressData.district,
+    city: addressData.provinceName || addressData.province,
     country: 'Việt Nam'
   })
 
   const validateStep = (stepIndex: number) => {
     const newErrors: Record<string, string> = {}
+    
     if (stepIndex === 1) {
-      if (!formData.fullName) newErrors.fullName = 'Họ và tên không được để trống'
-      if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Ngày sinh không được để trống'
+      const fullNameError = validators.fullName(formData.fullName)
+      if (fullNameError) newErrors.fullName = fullNameError
+
+      const dobError = validators.dateOfBirth(formData.dateOfBirth)
+      if (dobError) newErrors.dateOfBirth = dobError
+
       if (!formData.gender) newErrors.gender = 'Giới tính không được để trống'
-      if (!formData.email) newErrors.email = 'Email không được để trống'
-      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email không hợp lệ'
-      if (!formData.password) newErrors.password = 'Vui lòng tạo mật khẩu'
-      else if (formData.password.length < 8) newErrors.password = 'Mật khẩu tối thiểu 8 ký tự'
+
+      const emailError = validators.email(formData.email)
+      if (emailError) newErrors.email = emailError
+
+      const passwordError = validators.password(formData.password)
+      if (passwordError) newErrors.password = passwordError
     }
 
     if (stepIndex === 2) {
-      if (!formData.nationalId) newErrors.nationalId = 'Số CCCD không được để trống'
+      const nationalIdError = validators.nationalId(formData.nationalId)
+      if (nationalIdError) newErrors.nationalId = nationalIdError
+
       if (!formData.issueDateNationalId) newErrors.issueDateNationalId = 'Ngày cấp không được bỏ trống'
       if (!formData.placeOfIssueNationalId) newErrors.placeOfIssueNationalId = 'Nơi cấp không được bỏ trống'
       if (!permanentAddress.province) newErrors['permanentAddress.province'] = 'Chọn Tỉnh/Thành phố'
@@ -230,10 +265,13 @@ const Register = () => {
 
   const handleSendOtp = async () => {
     resetFeedback()
-    if (!phoneNumber) {
-      setErrors({ phoneNumber: 'Vui lòng nhập số điện thoại' })
+    
+    const phoneError = validators.phoneNumber(phoneNumber)
+    if (phoneError) {
+      setErrors({ phoneNumber: phoneError })
       return
     }
+    
     try {
       setLoading(true)
       const result = await registrationService.startRegistration(phoneNumber)
@@ -249,10 +287,13 @@ const Register = () => {
 
   const handleVerifyOtp = async () => {
     resetFeedback()
-    if (!otp) {
-      setErrors({ otp: 'Vui lòng nhập mã OTP' })
+    
+    const otpError = validators.otp(otp)
+    if (otpError) {
+      setErrors({ otp: otpError })
       return
     }
+    
     try {
       setLoading(true)
       const result = await registrationService.verifyOtp(phoneNumber, otp)
@@ -306,11 +347,11 @@ const Register = () => {
     resetFeedback()
     try {
       setLoading(true)
-      const permanent = buildAddressRequest(permanentAddress, districts, wards)
+      const permanent = buildAddressRequest(permanentAddress)
       const temporary = useSameAddress
         ? permanent
         : temporaryAddress.province
-          ? buildAddressRequest(temporaryAddress, tempDistricts, tempWards)
+          ? buildAddressRequest(temporaryAddress)
           : undefined
 
       const result = await registrationService.saveIdentity({
@@ -335,6 +376,52 @@ const Register = () => {
     }
   }
 
+  const handleVerifyKyc = async () => {
+    if (!session) return
+    resetFeedback()
+    try {
+      setKycVerifying(true)
+      const permanent = buildAddressRequest(permanentAddress)
+      const temporary = useSameAddress
+        ? permanent
+        : temporaryAddress.province
+          ? buildAddressRequest(temporaryAddress)
+          : undefined
+
+      const result = await registrationService.verifyKyc({
+        password: formData.password,
+        fullName: formData.fullName,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
+        nationality: formData.nationality,
+        nationalId: formData.nationalId,
+        issueDateNationalId: formData.issueDateNationalId,
+        placeOfIssueNationalId: formData.placeOfIssueNationalId,
+        occupation: formData.occupation,
+        position: formData.position,
+        email: formData.email,
+        phoneNumber: session.phoneNumber,
+        permanentAddress: permanent,
+        temporaryAddress: temporary
+      })
+
+      if (result.verified) {
+        setKycVerified(true)
+        setApiMessage('Xác thực eKYC thành công!')
+        setTimeout(() => {
+          setCurrentStep(4)
+        }, 1500)
+      } else {
+        setApiError(result.message || 'Xác thực eKYC thất bại')
+      }
+    } catch (error) {
+      console.error('KYC verification error:', error)
+      setApiError(error instanceof Error ? error.message : 'Không thể xác thực eKYC')
+    } finally {
+      setKycVerifying(false)
+    }
+  }
+
   const handleComplete = async () => {
     if (!session) return
     resetFeedback()
@@ -347,7 +434,9 @@ const Register = () => {
       setCustomerResult(result.data)
       setApiMessage(result.message ?? 'Đăng ký thành công!')
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : 'Không thể hoàn tất đăng ký')
+      console.error('Registration complete error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Không thể hoàn tất đăng ký'
+      setApiError(`${errorMessage}. Vui lòng kiểm tra lại thông tin hoặc liên hệ hotline: 1900 1234`)
     } finally {
       setLoading(false)
     }
@@ -835,6 +924,83 @@ const Register = () => {
       )
     }
 
+    if (currentStep === 3) {
+      return (
+        <div className="space-y-4">
+          <div className="text-center mb-4">
+            <div className="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <span className="material-icons-round text-purple-500 text-3xl">
+                {kycVerified ? 'verified' : 'fingerprint'}
+              </span>
+            </div>
+            <h3 className="text-lg font-semibold text-dark-blue mb-2">
+              {kycVerified ? 'Xác thực eKYC thành công!' : 'Xác thực eKYC'}
+            </h3>
+            <p className="text-dark-blue/60 text-sm">
+              {kycVerified 
+                ? 'Thông tin của bạn đã được xác thực thành công' 
+                : 'Hệ thống sẽ xác thực thông tin của bạn'}
+            </p>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="material-icons-round text-blue-primary text-2xl">info</span>
+              <p className="text-sm text-dark-blue font-medium">
+                Thông tin sẽ được xác thực
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 text-xs ml-11">
+              <div className="flex items-center gap-2">
+                <span className="material-icons-round text-green-500 text-sm">check_circle</span>
+                <span className="text-dark-blue/80">Thông tin CCCD: {formData.nationalId}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="material-icons-round text-green-500 text-sm">check_circle</span>
+                <span className="text-dark-blue/80">Họ tên: {formData.fullName}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="material-icons-round text-green-500 text-sm">check_circle</span>
+                <span className="text-dark-blue/80">Ngày sinh: {formData.dateOfBirth}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="material-icons-round text-green-500 text-sm">check_circle</span>
+                <span className="text-dark-blue/80">Địa chỉ thường trú</span>
+              </div>
+            </div>
+          </div>
+
+          {kycVerified && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <span className="material-icons-round text-green-500 text-2xl">check_circle</span>
+                <div>
+                  <p className="text-sm font-semibold text-green-800">Xác thực thành công</p>
+                  <p className="text-xs text-green-700">Thông tin của bạn đã được xác minh</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!kycVerified && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <span className="material-icons-round text-yellow-600 text-xl">lightbulb</span>
+                <div className="text-sm">
+                  <p className="font-medium text-yellow-800 mb-1">Lưu ý</p>
+                  <ul className="list-disc list-inside text-yellow-700 text-xs space-y-1">
+                    <li>Đây là bước xác thực giả lập cho môi trường phát triển</li>
+                    <li>Trong thực tế, hệ thống sẽ xác thực với cơ sở dữ liệu quốc gia</li>
+                    <li>Nhấn "Xác thực eKYC" để tiếp tục</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )
+    }
+
     return (
       <div className="space-y-4">
         <div className="text-center mb-4">
@@ -982,11 +1148,50 @@ const Register = () => {
       )
     }
 
+    if (currentStep === 3) {
+      return (
+        <div className="flex flex-col sm:flex-row gap-2 justify-end">
+          <button
+            type="button"
+            onClick={() => setCurrentStep(2)}
+            disabled={kycVerifying || kycVerified}
+            className="px-4 py-2 rounded-lg border border-blue-200 text-dark-blue font-semibold hover:bg-blue-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 text-sm"
+          >
+            <span className="material-icons-round text-base">arrow_back</span>
+            Quay lại
+          </button>
+          <button
+            type="button"
+            onClick={handleVerifyKyc}
+            disabled={kycVerifying || kycVerified}
+            className="px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white font-semibold transition-all duration-200 disabled:bg-purple-200 flex items-center justify-center gap-1 text-sm"
+          >
+            {kycVerifying ? (
+              <>
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Đang xác thực...
+              </>
+            ) : kycVerified ? (
+              <>
+                <span className="material-icons-round text-base">check</span>
+                Đã xác thực
+              </>
+            ) : (
+              <>
+                <span className="material-icons-round text-base">verified_user</span>
+                Xác thực eKYC
+              </>
+            )}
+          </button>
+        </div>
+      )
+    }
+
     return (
       <div className="flex flex-col sm:flex-row gap-2 justify-end">
         <button
           type="button"
-          onClick={() => setCurrentStep(2)}
+          onClick={() => setCurrentStep(3)}
           className="px-4 py-2 rounded-lg border border-blue-200 text-dark-blue font-semibold hover:bg-blue-50 transition-all duration-200 flex items-center justify-center gap-1 text-sm"
         >
           <span className="material-icons-round text-base">arrow_back</span>

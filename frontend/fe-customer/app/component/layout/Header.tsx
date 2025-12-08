@@ -1,10 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router'
 import '~/assets/css/header.css'
+import { customerService, type CustomerProfile } from '~/service/customerService'
 
 const Header = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const [profile, setProfile] = useState<CustomerProfile | null>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
+
+  // Fetch customer profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await customerService.getMyProfile()
+        setProfile(data)
+      } catch (error) {
+        console.error('Failed to fetch profile:', error)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+
+    fetchProfile()
+  }, [])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -60,12 +79,16 @@ const Header = () => {
           >
 
             <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-500 to-blue-400 flex items-center justify-center shadow-sm">
-              <span className="text-white font-semibold text-base">KL</span>
+              <span className="text-white font-semibold text-base">
+                {profileLoading ? '...' : (profile?.fullName?.substring(0, 2).toUpperCase() || 'KH')}
+              </span>
             </div>
             
             <div className="text-left">
-              <p className="text-lg font-semibold text-blue-900">Nguyễn Văn A</p>
-              <p className="text-sm text-blue-600/70">Quản trị viên</p>
+              <p className="text-lg font-semibold text-blue-900">
+                {profileLoading ? 'Đang tải...' : (profile?.fullName || 'N/A')}
+              </p>
+              <p className="text-sm text-blue-600/70">Khách hàng</p>
             </div>
 
             <span className={`material-icons-round text-blue-400 text-xl transition-transform duration-200 ${
@@ -78,8 +101,12 @@ const Header = () => {
           {isDropdownOpen && (
             <div className="absolute right-0 top-full mt-3 w-72 bg-white rounded-2xl shadow-xl border border-blue-100 py-3 z-50 animate-slideDown">
               <div className="px-5 py-4 border-b border-blue-100">
-                <p className="text-lg font-semibold text-blue-900">Nguyễn Văn A</p>
-                <p className="text-sm text-blue-600/70 mt-1">admin@kienlongbank.com</p>
+                <p className="text-lg font-semibold text-blue-900">
+                  {profile?.fullName || 'Khách hàng'}
+                </p>
+                <p className="text-sm text-blue-600/70 mt-1">
+                  {profile?.email || profile?.phoneNumber || 'N/A'}
+                </p>
               </div>
 
               <div className="py-2">

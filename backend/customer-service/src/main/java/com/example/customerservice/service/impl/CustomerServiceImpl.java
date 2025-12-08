@@ -66,6 +66,11 @@ public class CustomerServiceImpl implements CustomerService {
                     .customerName(registerDto.getFullName())
                     .username(registerDto.getPhoneNumber())
                     .nationalId(registerDto.getNationalId())
+                    .nationality(registerDto.getNationality())
+                    .issueDateNationalId(registerDto.getIssueDateNationalId())
+                    .placeOfIssueNationalId(registerDto.getPlaceOfIssueNationalId())
+                    .occupation(registerDto.getOccupation())
+                    .position(registerDto.getPosition())
                     .kycStatus(KycStatus.PENDING)
                     .riskLevel(RiskLevel.LOW)
                     .build();
@@ -140,8 +145,6 @@ public class CustomerServiceImpl implements CustomerService {
                 throw new CustomerAlreadyExistsException("phoneNumber", registerDto.getPhoneNumber());
             } else if (message.contains("email")) {
                 throw new CustomerAlreadyExistsException("email", registerDto.getEmail());
-            } else if (message.contains("national")) {
-                throw new CustomerAlreadyExistsException("nationalId", registerDto.getNationalId());
             }
             throw new CustomerAlreadyExistsException("field", "unknown - " + e.getMessage());
             
@@ -225,7 +228,6 @@ public class CustomerServiceImpl implements CustomerService {
         Customer customer = customerRepository.findByAuthProviderId(authProviderId)
                 .orElseThrow(() -> new CustomerNotFoundException("authProviderId", authProviderId));
 
-        // Update only provided fields
         if (updateRequest.getEmail() != null && !updateRequest.getEmail().isBlank()) {
             customer.setEmail(updateRequest.getEmail());
         }

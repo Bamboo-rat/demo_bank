@@ -96,20 +96,17 @@ axiosInstance.interceptors.response.use(
           // Try to refresh the token
           const response = await axios.post(
             `${axiosInstance.defaults.baseURL}/auth/refresh`,
-            null,
-            {
-              params: { refreshToken },
-            }
+            { refresh_token: refreshToken }
           );
 
-          const { accessToken, refreshToken: newRefreshToken } = response.data.data;
-          localStorage.setItem('access_token', accessToken);
+          const { access_token, refresh_token: newRefreshToken } = response.data.data;
+          localStorage.setItem('access_token', access_token);
           localStorage.setItem('refresh_token', newRefreshToken);
-          axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+          originalRequest.headers.Authorization = `Bearer ${access_token}`;
 
 
-          processQueue(null, accessToken);
+          processQueue(null, access_token);
 
           isRefreshing = false;
 

@@ -6,11 +6,16 @@ interface LoginRequest {
   password: string
 }
 
-interface LoginResponse {
+// Keycloak token response structure
+interface KeycloakTokenResponse {
   access_token: string
   refresh_token: string
   expires_in: number
+  refresh_expires_in: number
   token_type: string
+  'not-before-policy': number
+  session_state: string
+  scope: string
 }
 
 interface ApiResponse<T> {
@@ -30,9 +35,9 @@ const normalizeError = (error: unknown) => {
 }
 
 export const authService = {
-  login: async (credentials: LoginRequest): Promise<LoginResponse> => {
+  login: async (credentials: LoginRequest): Promise<KeycloakTokenResponse> => {
     try {
-      const { data } = await axiosCustomer.post<ApiResponse<LoginResponse>>(
+      const { data } = await axiosCustomer.post<ApiResponse<KeycloakTokenResponse>>(
         `${API_BASE}/login`,
         credentials
       )
@@ -62,14 +67,9 @@ export const authService = {
     }
   },
 
-  refreshToken: async (): Promise<LoginResponse> => {
+  refreshToken: async (refreshToken: string): Promise<KeycloakTokenResponse> => {
     try {
-      const refreshToken = localStorage.getItem('refresh_token')
-      if (!refreshToken) {
-        throw new Error('No refresh token')
-      }
-
-      const { data } = await axiosCustomer.post<ApiResponse<LoginResponse>>(
+      const { data } = await axiosCustomer.post<ApiResponse<KeycloakTokenResponse>>(
         `${API_BASE}/refresh`,
         { refresh_token: refreshToken }
       )

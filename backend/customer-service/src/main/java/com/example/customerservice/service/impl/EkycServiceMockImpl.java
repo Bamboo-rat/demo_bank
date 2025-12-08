@@ -25,24 +25,17 @@ public class EkycServiceMockImpl implements EkycService {
             Thread.currentThread().interrupt();
         }
 
-        // Mô phỏng xác thực eKYC thành công với dữ liệu từ request
+    
         EkycResponse response = EkycResponse.builder()
                 .status("SUCCESS")
                 .message("eKYC verification completed successfully")
                 .fullName(customerRegisterDTO.getFullName())
                 .dateOfBirth(customerRegisterDTO.getDateOfBirth())
                 .nationalId(customerRegisterDTO.getNationalId())
-                .isVerified(true)
+                .verified(true) 
                 .build();
 
-        // Cập nhật KYC status thành VERIFIED khi xác thực thành công
-        try {
-            customerService.updateKycStatus(customerRegisterDTO.getNationalId(), KycStatus.VERIFIED);
-            log.info("Successfully updated KYC status to VERIFIED for national ID: {}", customerRegisterDTO.getNationalId());
-        } catch (Exception e) {
-            log.error("Failed to update KYC status for national ID: {}", customerRegisterDTO.getNationalId(), e);
-            // Vẫn trả về response thành công nhưng log lỗi
-        }
+        log.info("eKYC simulation completed successfully for national ID: {}", customerRegisterDTO.getNationalId());
 
         return response;
     }

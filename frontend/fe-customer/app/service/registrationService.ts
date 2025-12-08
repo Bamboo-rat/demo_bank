@@ -7,8 +7,31 @@ import type {
   RegistrationProfilePayload,
   RegistrationIdentityPayload,
   RegistrationCompletePayload,
-  CustomerResponse
+  CustomerResponse,
+  AddressRequest
 } from '../../type/types'
+
+interface EkycVerificationRequest {
+  password: string
+  fullName: string
+  dateOfBirth: string
+  gender: string
+  nationality: string
+  nationalId: string
+  issueDateNationalId: string
+  placeOfIssueNationalId: string
+  occupation?: string
+  position?: string
+  email: string
+  phoneNumber: string
+  permanentAddress: AddressRequest
+  temporaryAddress?: AddressRequest
+}
+
+interface EkycResponse {
+  verified: boolean
+  message?: string
+}
 
 const API_BASE = '/registration'
 
@@ -46,7 +69,24 @@ export const registrationService = {
     postRegistration<RegistrationSessionResponse>('/identity', payload),
 
   complete: (payload: RegistrationCompletePayload) =>
-    postRegistration<CustomerResponse>('/complete', payload)
+    postRegistration<CustomerResponse>('/complete', payload),
+
+  verifyKyc: async (payload: EkycVerificationRequest): Promise<EkycResponse> => {
+    try {
+      const { data } = await axiosCustomer.post<ApiResponse<EkycResponse>>(
+        '/customers/kyc/verify',
+        payload
+      )
+      
+      if (!data?.success || !data?.data) {
+        throw new Error(data?.message ?? 'Xác thực eKYC thất bại')
+      }
+      
+      return data.data
+    } catch (error) {
+      throw normalizeError(error)
+    }
+  }
 }
 
 export type {

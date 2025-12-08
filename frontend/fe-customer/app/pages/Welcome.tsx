@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import banner1 from '~/assets/images/banner1.png'
-import banner2 from '~/assets/images/banner2.png'
-import banner3 from '~/assets/images/banner3.png'
-import banner4 from '~/assets/images/banner4.png'
+import banner1 from '~/assets/images/banner1.jpg'
+import banner2 from '~/assets/images/banner2.jpg'
+import banner3 from '~/assets/images/banner3.jpg'
+import banner4 from '~/assets/images/banner4.jpg'
 import { authService } from '~/service/authService'
 
 interface ServiceCard {

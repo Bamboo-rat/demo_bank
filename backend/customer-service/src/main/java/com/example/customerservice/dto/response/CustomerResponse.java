@@ -17,11 +17,17 @@ public class CustomerResponse {
     private String fullName;
     private String email;
     private String phoneNumber;
+    private boolean emailVerified;
+    
+    // Basic profile information
     private LocalDate dateOfBirth;
     private Gender gender;
     private AddressResponse permanentAddress;
     private AddressResponse temporaryAddress;
-    private boolean emailVerified;
+    
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // Note: Sensitive KYC data (nationalId, kyc_status, risk_level, nationality, occupation, etc.)
+    // should be fetched from Core Banking Service via cifNumber
 }

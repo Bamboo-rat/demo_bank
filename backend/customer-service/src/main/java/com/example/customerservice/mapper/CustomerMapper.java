@@ -7,13 +7,17 @@ import com.example.customerservice.entity.Customer;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(
-        componentModel = "spring",
-        uses = {AddressMapper.class}
-)
+@Mapper(componentModel = "spring", uses = {AddressMapper.class})
 public interface CustomerMapper {
 
     @Mapping(source = "phoneNumber", target = "username")
+    @Mapping(source = "phoneNumber", target = "phoneNumber")
+    @Mapping(source = "fullName", target = "fullName")
+    @Mapping(source = "email", target = "email")
+    @Mapping(source = "dateOfBirth", target = "dateOfBirth")
+    @Mapping(source = "gender", target = "gender")
+    @Mapping(source = "permanentAddress", target = "permanentAddress")
+    @Mapping(source = "temporaryAddress", target = "temporaryAddress")
     @Mapping(target = "customerId", ignore = true)
     @Mapping(target = "authProviderId", ignore = true)
     @Mapping(target = "cifNumber", ignore = true)
@@ -21,7 +25,6 @@ public interface CustomerMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Customer toEntity(CustomerRegisterRequest dto);
-
 
     CustomerResponse toResponse(Customer entity);
 }

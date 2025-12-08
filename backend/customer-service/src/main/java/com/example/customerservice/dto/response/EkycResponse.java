@@ -17,5 +17,5 @@ public class EkycResponse {
     private String fullName;
     private LocalDate dateOfBirth;
     private String nationalId;
-    private Boolean isVerified;
+    private Boolean verified;
 }

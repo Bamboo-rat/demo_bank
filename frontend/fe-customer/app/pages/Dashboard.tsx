@@ -1,11 +1,29 @@
 import React from 'react'
 import { useNavigate, Link } from 'react-router'
 import { authService } from '~/service/authService'
+import { customerService, type CustomerProfile } from '~/service/customerService'
 import Layout from '~/component/layout/Layout'
 
 const Dashboard = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = React.useState(false)
+  const [profile, setProfile] = React.useState<CustomerProfile | null>(null)
+  const [profileLoading, setProfileLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await customerService.getMyProfile()
+        setProfile(data)
+      } catch (error) {
+        console.error('Failed to fetch profile:', error)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+
+    fetchProfile()
+  }, [])
 
   const handleLogout = async () => {
     setLoading(true)
@@ -59,7 +77,7 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 to-white">
         {/* Header */}
         <div className="bg-white shadow-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -73,14 +91,6 @@ const Dashboard = () => {
                   <p className="text-sm text-blue-primary">KienLong Bank</p>
                 </div>
               </div>
-              <button
-                onClick={handleLogout}
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50"
-              >
-                <span className="material-icons-round text-xl">logout</span>
-                <span>Đăng xuất</span>
-              </button>
             </div>
           </div>
         </div>
@@ -89,10 +99,10 @@ const Dashboard = () => {
           {/* Welcome Section */}
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-dark-blue mb-2">
-              Xin chào! 👋
+              Xin chào, {profileLoading ? '...' : profile?.fullName || 'Khách hàng'}! 👋
             </h2>
             <p className="text-dark-blue/70">
-              Chào mừng bạn quay trở lại với KienLong Bank
+              {profileLoading ? 'Đang tải thông tin...' : `CIF: ${profile?.cifNumber || 'N/A'} | KYC: ${profile?.kycStatus || 'PENDING'}`}
             </p>
           </div>
 
@@ -127,7 +137,7 @@ const Dashboard = () => {
                 <Link
                   key={index}
                   to={action.link}
-                  className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-xl hover:shadow-lg transition-all duration-300 group"
+                  className="flex flex-col items-center justify-center p-6 bg-linear-to-br from-blue-50 to-white border border-blue-100 rounded-xl hover:shadow-lg transition-all duration-300 group"
                 >
                   <div className="w-16 h-16 rounded-full bg-blue-primary group-hover:bg-orange-primary flex items-center justify-center mb-3 transition-colors duration-300">
                     <span className="material-icons-round text-white text-3xl">

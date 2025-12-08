@@ -134,11 +134,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-aop</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>com.alibaba.cloud</groupId>
 			<artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
-			<version>2023.0.1.2</version>
 		</dependency>
+
 		<!-- Dubbo for high-performance internal RPC -->
 		<dependency>
 			<groupId>org.apache.dubbo</groupId>

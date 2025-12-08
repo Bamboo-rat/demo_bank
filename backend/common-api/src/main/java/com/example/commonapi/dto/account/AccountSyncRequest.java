@@ -1,4 +1,4 @@
-package com.example.accountservice.dto.dubbo;
+package com.example.commonapi.dto.account;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Request DTO for Dubbo account sync
+ * Request payload for account metadata synchronization over Dubbo.
  */
 @Data
 @Builder
@@ -22,9 +22,9 @@ public class AccountSyncRequest implements Serializable {
     private String accountNumber;
     private String customerId;
     private String cifNumber;
-    private String accountType; // CHECKING, SAVINGS, CREDIT
-    private String currency;    // VND, USD, EUR
-    private String status;      // ACTIVE, DORMANT, CLOSED, FROZEN, BLOCKED
+    private String accountType;
+    private String currency;
+    private String status;
     private BigDecimal balance;
     private LocalDateTime openedAt;
 }

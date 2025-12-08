@@ -1,8 +1,8 @@
 package com.example.customerservice.service.impl;
 
-import com.example.accountservice.dto.dubbo.AccountSyncRequest;
-import com.example.accountservice.dto.dubbo.AccountSyncResult;
 import com.example.commonapi.dto.ApiResponse;
+import com.example.commonapi.dto.account.AccountSyncRequest;
+import com.example.commonapi.dto.account.AccountSyncResult;
 import com.example.customerservice.client.CoreBankingFeignClient;
 import com.example.customerservice.dto.request.CreateCoreCustomerRequest;
 import com.example.customerservice.dto.request.CustomerLoginDTO;

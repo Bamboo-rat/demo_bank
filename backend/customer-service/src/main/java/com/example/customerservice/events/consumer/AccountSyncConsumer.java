@@ -1,8 +1,8 @@
 package com.example.customerservice.events.consumer;
 
-import com.example.accountservice.dto.dubbo.AccountSyncRequest;
-import com.example.accountservice.dto.dubbo.AccountSyncResult;
-import com.example.accountservice.events.producer.AccountSyncDubboProducer;
+import com.example.commonapi.dubbo.AccountSyncDubboService;
+import com.example.commonapi.dto.account.AccountSyncRequest;
+import com.example.commonapi.dto.account.AccountSyncResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Component;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class AccountSyncConsumer {
 
     @DubboReference(version = "1.0.0", group = "banking-services", check = false, timeout = 5000)
-    private AccountSyncDubboProducer accountSyncDubboProducer;
+    private AccountSyncDubboService accountSyncDubboService;
 
     /**
      * Sync account metadata to account-service via Dubbo RPC
@@ -28,7 +28,7 @@ public class AccountSyncConsumer {
         log.info("Syncing account metadata via Dubbo for accountNumber: {}", request.getAccountNumber());
         
         try {
-            AccountSyncResult result = accountSyncDubboProducer.syncAccountMetadata(request);
+            AccountSyncResult result = accountSyncDubboService.syncAccountMetadata(request);
             
             if (result.isSuccess()) {
                 log.info("Successfully synced account metadata: accountNumber={}, accountId={}", 

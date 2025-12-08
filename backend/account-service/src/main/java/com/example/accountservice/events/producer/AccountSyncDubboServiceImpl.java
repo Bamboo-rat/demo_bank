@@ -1,12 +1,12 @@
-package com.example.accountservice.events.producer.impl;
+package com.example.accountservice.events.producer;
 
-import com.example.accountservice.dto.dubbo.AccountSyncRequest;
-import com.example.accountservice.dto.dubbo.AccountSyncResult;
+import com.example.commonapi.dubbo.AccountSyncDubboService;
+import com.example.commonapi.dto.account.AccountSyncRequest;
+import com.example.commonapi.dto.account.AccountSyncResult;
 import com.example.accountservice.entity.*;
 import com.example.accountservice.entity.enums.AccountStatus;
 import com.example.accountservice.entity.enums.AccountType;
 import com.example.accountservice.entity.enums.Currency;
-import com.example.accountservice.events.producer.AccountSyncDubboProducer;
 import com.example.accountservice.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @DubboService(version = "1.0.0", group = "banking-services")
 @RequiredArgsConstructor
 @Slf4j
-public class AccountSyncDubboProducerImpl implements AccountSyncDubboProducer {
+public class AccountSyncDubboServiceImpl implements AccountSyncDubboService {
 
     private final AccountRepository accountRepository;
 

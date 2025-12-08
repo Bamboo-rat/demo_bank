@@ -1,4 +1,4 @@
-package com.example.accountservice.dto.dubbo;
+package com.example.commonapi.dto.account;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 
 /**
- * Response DTO for Dubbo account sync
+ * Response payload for account metadata synchronization over Dubbo.
  */
 @Data
 @Builder
@@ -19,5 +19,5 @@ public class AccountSyncResult implements Serializable {
 
     private boolean success;
     private String message;
-    private String accountId; // Local account ID after sync
+    private String accountId;
 }

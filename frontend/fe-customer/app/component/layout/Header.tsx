@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import '~/assets/css/header.css'
 import { customerService, type CustomerProfile } from '~/service/customerService'
+import { authService } from '~/service/authService'
 
 const Header = () => {
+  const navigate = useNavigate()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const [profile, setProfile] = useState<CustomerProfile | null>(null)
@@ -43,11 +45,29 @@ const Header = () => {
     setIsDropdownOpen(!isDropdownOpen)
   }
 
-  const userMenuItems = [
+  interface UserMenuItem {
+    icon: string
+    label: string
+    link?: string
+    action?: () => void | Promise<void>
+  }
+
+  const handleLogout = async () => {
+    setIsDropdownOpen(false)
+    try {
+      await authService.logout()
+    } catch (error) {
+      console.error('Logout failed:', error)
+    } finally {
+      navigate('/', { replace: true })
+    }
+  }
+
+  const userMenuItems: UserMenuItem[] = [
     { icon: 'person', label: 'Hồ sơ người dùng', link: '/profile' },
     { icon: 'settings', label: 'Cấu hình', link: '/configuration' },
     { icon: 'tune', label: 'Cài đặt', link: '/settings' },
-    { icon: 'logout', label: 'Đăng xuất', link: '/logout' }
+    { icon: 'logout', label: 'Đăng xuất', action: handleLogout }
   ]
 
   const handleMenuItemClick = () => {
@@ -111,17 +131,31 @@ const Header = () => {
 
               <div className="py-2">
                 {userMenuItems.map((item, index) => (
-                  <Link
-                    key={index}
-                    to={item.link}
-                    onClick={handleMenuItemClick}
-                    className="flex items-center gap-4 px-5 py-4 text-base text-blue-900/80 hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200"
-                  >
-                    <span className="material-icons-round text-blue-500 text-xl flex items-center justify-center w-6">
-                      {item.icon}
-                    </span>
-                    <span className="font-medium">{item.label}</span>
-                  </Link>
+                  item.action ? (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => { void item.action?.() }}
+                      className="w-full flex items-center gap-4 px-5 py-4 text-left text-base text-blue-900/80 hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200"
+                    >
+                      <span className="material-icons-round text-blue-500 text-xl flex items-center justify-center w-6">
+                        {item.icon}
+                      </span>
+                      <span className="font-medium">{item.label}</span>
+                    </button>
+                  ) : (
+                    <Link
+                      key={index}
+                      to={item.link!}
+                      onClick={handleMenuItemClick}
+                      className="flex items-center gap-4 px-5 py-4 text-base text-blue-900/80 hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200"
+                    >
+                      <span className="material-icons-round text-blue-500 text-xl flex items-center justify-center w-6">
+                        {item.icon}
+                      </span>
+                      <span className="font-medium">{item.label}</span>
+                    </Link>
+                  )
                 ))}
               </div>
             </div>

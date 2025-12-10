@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import {
   addressService,
   type Province,
@@ -55,6 +55,7 @@ const initialAddressState: AddressFormData = {
 }
 
 const Register = () => {
+  const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState(initialFormState)
   const [permanentAddress, setPermanentAddress] = useState<AddressFormData>({ ...initialAddressState })
@@ -81,6 +82,18 @@ const Register = () => {
   const [customerResult, setCustomerResult] = useState<CustomerResponse | null>(null)
   const [kycVerified, setKycVerified] = useState(false)
   const [kycVerifying, setKycVerifying] = useState(false)
+
+  useEffect(() => {
+    if (!customerResult) {
+      return
+    }
+
+    const timer = setTimeout(() => {
+      navigate('/login', { replace: true })
+    }, 2000)
+
+    return () => clearTimeout(timer)
+  }, [customerResult, navigate])
 
   useEffect(() => {
     void loadProvinces()
@@ -1047,7 +1060,6 @@ const Register = () => {
               <span className="material-icons-round text-green-500 text-lg">check_circle</span>
               <div>
                 <h3 className="text-sm font-semibold text-green-700 mb-1">Đăng ký thành công!</h3>
-                <p className="text-xs text-green-700/80">Mã KH: <span className="font-semibold">{customerResult.customerId}</span></p>
               </div>
             </div>
           </div>
@@ -1226,7 +1238,7 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-25 to-blue-50 py-6 px-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <div className="text-center mb-6">
           <div className="w-16 h-16 rounded-xl border-3 border-dark-blue bg-white flex items-center justify-center shadow-md mx-auto mb-3">
             <img src="/app/assets/images/logo-kienlongbank.png" alt="KienLong Bank" className="w-10 h-10 object-contain" />
@@ -1235,16 +1247,16 @@ const Register = () => {
           <p className="text-dark-blue/70 text-sm">Trải nghiệm ngân hàng số hiện đại</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg border border-blue-100 p-5 space-y-6">
+        <div className="bg-white rounded-xl shadow-lg border border-blue-100 p-6 space-y-6">
           {/* Progress Steps */}
-          <div className="grid grid-cols-4 gap-1">
+          <div className="grid grid-cols-5 gap-2">
             {steps.map((step, index) => {
               const isActive = index === currentStep
               const isCompleted = index < currentStep
               return (
                 <div
                   key={step.title}
-                  className={`text-center p-2 rounded-lg border transition-all duration-200 ${
+                  className={`text-center p-3 rounded-lg border transition-all duration-200 ${
                     isActive
                       ? 'border-orange-primary bg-orange-primary/10'
                       : isCompleted
@@ -1252,9 +1264,9 @@ const Register = () => {
                         : 'border-blue-100 bg-blue-25'
                   }`}
                 >
-                  <div className="flex flex-col items-center gap-1">
+                  <div className="flex flex-col items-center gap-1.5">
                     <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-200 ${
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-200 ${
                         isCompleted
                           ? 'bg-green-500 text-white'
                           : isActive
@@ -1263,12 +1275,12 @@ const Register = () => {
                       }`}
                     >
                       {isCompleted ? (
-                        <span className="material-icons-round text-xs">check</span>
+                        <span className="material-icons-round text-sm">check</span>
                       ) : (
                         index + 1
                       )}
                     </div>
-                    <p className={`text-xs font-medium ${
+                    <p className={`text-xs font-medium leading-tight ${
                       isActive ? 'text-orange-primary' : 
                       isCompleted ? 'text-green-600' : 'text-dark-blue/60'
                     }`}>

@@ -1,5 +1,6 @@
 package com.example.customerservice.service.impl;
 
+import com.example.customerservice.dto.request.AddressRequest;
 import com.example.customerservice.dto.request.CustomerRegisterRequest;
 import com.example.customerservice.dto.request.registration.RegistrationCompleteRequest;
 import com.example.customerservice.dto.request.registration.RegistrationIdentityRequest;
@@ -20,6 +21,7 @@ import com.example.customerservice.redis.model.RegistrationIdentityData;
 import com.example.customerservice.redis.model.RegistrationProfileData;
 import com.example.customerservice.redis.model.RegistrationSession;
 import com.example.customerservice.redis.model.RegistrationSessionStatus;
+import com.example.customerservice.service.AddressNormalizationService;
 import com.example.customerservice.service.CustomerService;
 import com.example.customerservice.service.RegistrationService;
 import java.security.SecureRandom;
@@ -44,6 +46,7 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     private final RegistrationSessionRepository registrationSessionRepository;
     private final CustomerService customerService;
+    private final AddressNormalizationService addressNormalizationService;
 
     @Override
     public RegistrationStartResponse start(RegistrationStartRequest request) {
@@ -123,12 +126,17 @@ public class RegistrationServiceImpl implements RegistrationService {
         log.info("Persisting identity data for session {} (phone {})", session.getSessionId(), session.getPhoneNumber());
         ensureState(session, RegistrationSessionStatus.PROFILE_IN_PROGRESS);
 
+        AddressRequest normalizedPermanent = addressNormalizationService.normalize(request.getPermanentAddress());
+        AddressRequest normalizedTemporary = request.getTemporaryAddress() != null
+            ? addressNormalizationService.normalize(request.getTemporaryAddress())
+            : null;
+
         RegistrationIdentityData identityData = RegistrationIdentityData.builder()
-                .nationalId(request.getNationalId())
-                .issueDateNationalId(request.getIssueDateNationalId())
-                .placeOfIssueNationalId(request.getPlaceOfIssueNationalId())
-                .permanentAddress(request.getPermanentAddress())
-                .temporaryAddress(request.getTemporaryAddress())
+            .nationalId(request.getNationalId())
+            .issueDateNationalId(request.getIssueDateNationalId())
+            .placeOfIssueNationalId(request.getPlaceOfIssueNationalId())
+            .permanentAddress(normalizedPermanent)
+            .temporaryAddress(normalizedTemporary)
                 .documentFrontImage(request.getDocumentFrontImage())
                 .documentBackImage(request.getDocumentBackImage())
                 .selfieImage(request.getSelfieImage())
@@ -155,6 +163,12 @@ public class RegistrationServiceImpl implements RegistrationService {
         }
 
         CustomerRegisterRequest registerRequest = buildRegisterRequest(session);
+        AddressRequest normalizedPermanent = addressNormalizationService.normalize(registerRequest.getPermanentAddress());
+        AddressRequest normalizedTemporary = registerRequest.getTemporaryAddress() != null
+            ? addressNormalizationService.normalize(registerRequest.getTemporaryAddress())
+            : null;
+        registerRequest.setPermanentAddress(normalizedPermanent);
+        registerRequest.setTemporaryAddress(normalizedTemporary);
         CustomerResponse response = customerService.registerCustomer(registerRequest);
 
         session.setStatus(RegistrationSessionStatus.COMPLETED);
@@ -202,8 +216,8 @@ public class RegistrationServiceImpl implements RegistrationService {
                 .position(profile.getPosition())
                 .email(profile.getEmail())
                 .phoneNumber(session.getPhoneNumber())
-                .permanentAddress(identity.getPermanentAddress())
-                .temporaryAddress(identity.getTemporaryAddress())
+            .permanentAddress(identity.getPermanentAddress())
+            .temporaryAddress(identity.getTemporaryAddress())
                 .build();
     }
 

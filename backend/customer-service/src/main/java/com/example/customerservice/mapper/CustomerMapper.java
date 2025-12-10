@@ -16,6 +16,7 @@ public interface CustomerMapper {
     @Mapping(source = "email", target = "email")
     @Mapping(source = "dateOfBirth", target = "dateOfBirth")
     @Mapping(source = "gender", target = "gender")
+    @Mapping(source = "nationalId", target = "nationalId")
     @Mapping(source = "permanentAddress", target = "permanentAddress")
     @Mapping(source = "temporaryAddress", target = "temporaryAddress")
     @Mapping(target = "customerId", ignore = true)
@@ -24,6 +25,7 @@ public interface CustomerMapper {
     @Mapping(target = "emailVerified", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "kycStatus", expression = "java(com.example.customerservice.entity.enums.KycStatus.PENDING)")
     Customer toEntity(CustomerRegisterRequest dto);
 
     CustomerResponse toResponse(Customer entity);

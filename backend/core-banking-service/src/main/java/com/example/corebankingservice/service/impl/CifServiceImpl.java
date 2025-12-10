@@ -3,6 +3,7 @@ package com.example.corebankingservice.service.impl;
 import com.example.corebankingservice.dto.request.CreateCifRequest;
 import com.example.corebankingservice.dto.request.OpenAccountCoreRequest;
 import com.example.corebankingservice.dto.request.UpdateCifStatusRequest;
+import com.example.corebankingservice.dto.request.UpdateKycStatusRequest;
 import com.example.corebankingservice.dto.response.AccountDetailResponse;
 import com.example.corebankingservice.dto.response.CifResponse;
 import com.example.corebankingservice.dto.response.CifStatusResponse;
@@ -130,6 +131,33 @@ public class CifServiceImpl implements CifService{
         log.info("CIF status updated from {} to {} for: {}", oldStatus, newStatus, cifNumber);
 
         return cifMapper.toResponse(updatedCif);
+    }
+
+    @Override
+    public CifResponse updateKycStatus(String cifNumber, UpdateKycStatusRequest request) {
+        log.info("Updating KYC status for CIF: {} to {}", cifNumber, request.getKycStatus());
+
+        CIF_Master cif = cifMasterRepository.findByCifNumber(cifNumber)
+                .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.cif.not.found")));
+
+        if (request.getKycStatus() == null) {
+            throw new BusinessException(getMessage("error.cif.kyc.status.required"));
+        }
+
+        KycStatus oldStatus = cif.getKycStatus();
+        KycStatus newStatus = request.getKycStatus();
+
+        if (oldStatus == newStatus) {
+            log.info("KYC status for CIF {} is already {}. No changes applied.", cifNumber, newStatus);
+            return cifMapper.toResponse(cif);
+        }
+
+        cif.setKycStatus(newStatus);
+        CIF_Master updated = cifMasterRepository.save(cif);
+
+        log.info("KYC status updated for CIF {} from {} to {} by {}", cifNumber, oldStatus, newStatus, request.getAuthorizedBy());
+
+        return cifMapper.toResponse(updated);
     }
 
     /**

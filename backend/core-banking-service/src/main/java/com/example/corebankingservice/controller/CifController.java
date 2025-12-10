@@ -3,6 +3,7 @@ package com.example.corebankingservice.controller;
 import com.example.commonapi.dto.ApiResponse;
 import com.example.corebankingservice.dto.request.CreateCifRequest;
 import com.example.corebankingservice.dto.request.UpdateCifStatusRequest;
+import com.example.corebankingservice.dto.request.UpdateKycStatusRequest;
 import com.example.corebankingservice.dto.response.CifResponse;
 import com.example.corebankingservice.dto.response.CifStatusResponse;
 import com.example.corebankingservice.service.impl.CifServiceImpl;
@@ -24,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "CIF Management", description = "Core Banking CIF Management APIs")
 public class CifController {
 
-    private final CifServiceImpl cifService;
+        private final CifServiceImpl cifService;
 
     @PostMapping("/create")
     @Operation(summary = "Create new CIF", description = "Create a new CIF in Core Banking System")
@@ -77,6 +78,24 @@ public class CifController {
                 .data(response)
                 .build());
     }
+
+        @PutMapping("/{cifNumber}/kyc-status")
+        @Operation(summary = "Update CIF KYC Status", description = "Update the KYC status of a CIF")
+        public ResponseEntity<ApiResponse<CifResponse>> updateKycStatus(
+                        @Parameter(description = "CIF Number", required = true)
+                        @PathVariable String cifNumber,
+                        @Valid @RequestBody UpdateKycStatusRequest request) {
+
+                log.info("Updating KYC status for CIF: {}", cifNumber);
+
+                CifResponse response = cifService.updateKycStatus(cifNumber, request);
+
+                return ResponseEntity.ok(ApiResponse.<CifResponse>builder()
+                                .success(true)
+                                .message("CIF KYC status updated successfully")
+                                .data(response)
+                                .build());
+        }
 
     @GetMapping("/validate/{cifNumber}")
     @Operation(summary = "Validate CIF", description = "Check if CIF exists and can transact")

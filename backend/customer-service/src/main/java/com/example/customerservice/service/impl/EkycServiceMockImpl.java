@@ -3,6 +3,7 @@ package com.example.customerservice.service.impl;
 import com.example.customerservice.dto.request.CustomerRegisterRequest;
 import com.example.customerservice.dto.response.EkycResponse;
 import com.example.customerservice.entity.enums.KycStatus;
+import com.example.customerservice.exception.CustomerNotFoundException;
 import com.example.customerservice.service.CustomerService;
 import com.example.customerservice.service.EkycService;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,17 @@ public class EkycServiceMockImpl implements EkycService {
                 .build();
 
         log.info("eKYC simulation completed successfully for national ID: {}", customerRegisterDTO.getNationalId());
+
+        if (Boolean.TRUE.equals(response.getVerified())) {
+            try {
+                customerService.updateKycStatus(customerRegisterDTO.getNationalId(), KycStatus.VERIFIED);
+            } catch (CustomerNotFoundException notFoundException) {
+                log.info("Customer with national ID {} not found during mock eKYC update. This may occur before registration is completed.",
+                        customerRegisterDTO.getNationalId());
+            } catch (Exception ex) {
+                log.error("Failed to update KYC status after mock verification for national ID {}", customerRegisterDTO.getNationalId(), ex);
+            }
+        }
 
         return response;
     }

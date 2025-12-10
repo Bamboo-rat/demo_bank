@@ -1,6 +1,7 @@
 package com.example.customerservice.dto.response;
 
 import com.example.customerservice.entity.enums.Gender;
+import com.example.customerservice.entity.enums.KycStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -24,10 +25,9 @@ public class CustomerResponse {
     private Gender gender;
     private AddressResponse permanentAddress;
     private AddressResponse temporaryAddress;
+    private KycStatus kycStatus;
     
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Note: Sensitive KYC data (nationalId, kyc_status, risk_level, nationality, occupation, etc.)
-    // should be fetched from Core Banking Service via cifNumber
 }

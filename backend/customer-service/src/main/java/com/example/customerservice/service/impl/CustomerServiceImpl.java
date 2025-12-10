@@ -5,10 +5,13 @@ import com.example.commonapi.dto.account.AccountSyncRequest;
 import com.example.commonapi.dto.account.AccountSyncResult;
 import com.example.customerservice.client.CoreBankingFeignClient;
 import com.example.customerservice.dto.request.CreateCoreCustomerRequest;
+import com.example.customerservice.dto.request.AddressRequest;
 import com.example.customerservice.dto.request.CustomerLoginDTO;
 import com.example.customerservice.dto.request.CustomerRegisterRequest;
 import com.example.customerservice.dto.request.CustomerUpdateRequest;
+import com.example.customerservice.dto.request.UpdateCoreKycStatusRequest;
 import com.example.customerservice.dto.response.CreateCoreCustomerResponse;
+import com.example.customerservice.dto.response.CoreCifResponse;
 import com.example.customerservice.dto.response.CustomerResponse;
 import com.example.customerservice.events.consumer.AccountSyncConsumer;
 import com.example.customerservice.entity.Customer;
@@ -21,6 +24,7 @@ import com.example.customerservice.exception.CustomerRegistrationException;
 import com.example.customerservice.mapper.AddressMapper;
 import com.example.customerservice.mapper.CustomerMapper;
 import com.example.customerservice.repository.CustomerRepository;
+import com.example.customerservice.service.AddressNormalizationService;
 import com.example.customerservice.service.CustomerService;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +48,7 @@ public class CustomerServiceImpl implements CustomerService {
     private final AccountSyncConsumer accountSyncConsumer;
     private final CustomerMapper customerMapper;
     private final AddressMapper addressMapper;
+    private final AddressNormalizationService addressNormalizationService;
 
     @Override
     @Transactional
@@ -89,7 +94,15 @@ public class CustomerServiceImpl implements CustomerService {
 
             // Step 3: Save customer in local database
             log.info("Step 3: Saving customer in local database");
-            Customer customer = customerMapper.toEntity(registerDto);
+                AddressRequest normalizedPermanentAddress = addressNormalizationService.normalize(registerDto.getPermanentAddress());
+                AddressRequest normalizedTemporaryAddress = registerDto.getTemporaryAddress() != null
+                    ? addressNormalizationService.normalize(registerDto.getTemporaryAddress())
+                    : null;
+
+                registerDto.setPermanentAddress(normalizedPermanentAddress);
+                registerDto.setTemporaryAddress(normalizedTemporaryAddress);
+
+                Customer customer = customerMapper.toEntity(registerDto);
             customer.setAuthProviderId(authProviderId);
             customer.setCifNumber(coreResponse.getCifNumber());
             customer.setEmailVerified(false);
@@ -145,6 +158,8 @@ public class CustomerServiceImpl implements CustomerService {
                 throw new CustomerAlreadyExistsException("phoneNumber", registerDto.getPhoneNumber());
             } else if (message.contains("email")) {
                 throw new CustomerAlreadyExistsException("email", registerDto.getEmail());
+            } else if (message.contains("national")) {
+                throw new CustomerAlreadyExistsException("nationalId", registerDto.getNationalId());
             }
             throw new CustomerAlreadyExistsException("field", "unknown - " + e.getMessage());
             
@@ -235,7 +250,8 @@ public class CustomerServiceImpl implements CustomerService {
             customer.setPhoneNumber(updateRequest.getPhone());
         }
         if (updateRequest.getTemporaryAddress() != null) {
-            customer.setTemporaryAddress(addressMapper.toEntity(updateRequest.getTemporaryAddress()));
+            AddressRequest normalizedTemporary = addressNormalizationService.normalize(updateRequest.getTemporaryAddress());
+            customer.setTemporaryAddress(addressMapper.toEntity(normalizedTemporary));
         }
 
         Customer saved = customerRepository.save(customer);
@@ -246,8 +262,59 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional
     public void updateKycStatus(String nationalId, KycStatus kycStatus) {
-        log.info("Skip updating KYC status locally for nationalId {} to {}. This responsibility now resides in core banking.",
-                nationalId, kycStatus);
+        String normalizedNationalId = nationalId != null ? nationalId.trim() : null;
+        log.info("Updating KYC status for nationalId {} to {}", normalizedNationalId, kycStatus);
+
+        if (kycStatus == null) {
+            log.warn("Received null KYC status for nationalId {}. Skipping update.", normalizedNationalId);
+            return;
+        }
+
+        if (normalizedNationalId == null || normalizedNationalId.isEmpty()) {
+            log.warn("Cannot update KYC status because nationalId is blank");
+            return;
+        }
+
+        Customer customer = customerRepository.findByNationalId(normalizedNationalId)
+                .orElseThrow(() -> new CustomerNotFoundException("nationalId", normalizedNationalId));
+
+        if (customer.getKycStatus() != kycStatus) {
+            customer.setKycStatus(kycStatus);
+            customerRepository.save(customer);
+            log.info("Updated local KYC status for customer {} to {}", customer.getCustomerId(), kycStatus);
+        } else {
+            log.debug("KYC status for customer {} is already {}. Skipping local update.", customer.getCustomerId(), kycStatus);
+        }
+
+        if (customer.getCifNumber() == null || customer.getCifNumber().isBlank()) {
+            log.warn("Customer {} does not have CIF number; skipping core banking KYC update", customer.getCustomerId());
+            return;
+        }
+
+        UpdateCoreKycStatusRequest request = UpdateCoreKycStatusRequest.builder()
+                .kycStatus(kycStatus)
+                .authorizedBy("CUSTOMER_SERVICE")
+                .note("Updated via customer-service eKYC workflow")
+                .build();
+
+        try {
+            ApiResponse<CoreCifResponse> response = coreBankingFeignClient.updateKycStatus(customer.getCifNumber(), request);
+
+            if (response == null || !response.isSuccess()) {
+                throw new CustomerRegistrationException(ErrorCode.CORE_BANKING_INVALID_RESPONSE, null,
+                        new IllegalStateException("Core banking returned unsuccessful response when updating KYC status"));
+            }
+
+            log.info("Synchronized KYC status with core banking for CIF {} -> {}", customer.getCifNumber(), kycStatus);
+        } catch (FeignException feignException) {
+            log.error("Failed to update KYC status in core banking for CIF {}", customer.getCifNumber(), feignException);
+            throw new CustomerRegistrationException(ErrorCode.CORE_BANKING_CONNECTION_ERROR, null, feignException);
+        } catch (CustomerRegistrationException e) {
+            throw e;
+        } catch (Exception ex) {
+            log.error("Unexpected error while syncing KYC status to core banking for CIF {}", customer.getCifNumber(), ex);
+            throw new CustomerRegistrationException(ErrorCode.CORE_BANKING_INVALID_RESPONSE, null, ex);
+        }
     }
 
     @Override

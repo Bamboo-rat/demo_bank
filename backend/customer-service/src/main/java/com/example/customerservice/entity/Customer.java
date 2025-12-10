@@ -1,6 +1,7 @@
 package com.example.customerservice.entity;
 
 import com.example.customerservice.entity.enums.Gender;
+import com.example.customerservice.entity.enums.KycStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -50,6 +51,14 @@ public class Customer {
 
     @Enumerated(EnumType.STRING)
     private Gender gender;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private KycStatus kycStatus = KycStatus.PENDING;
+
+    @Column(nullable = false, unique = true)
+    private String nationalId;
 
     @Embedded
     @AttributeOverrides({

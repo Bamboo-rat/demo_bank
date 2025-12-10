@@ -82,6 +82,7 @@ const Register = () => {
   const [customerResult, setCustomerResult] = useState<CustomerResponse | null>(null)
   const [kycVerified, setKycVerified] = useState(false)
   const [kycVerifying, setKycVerifying] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     if (!customerResult) {
@@ -652,16 +653,30 @@ const Register = () => {
               <label className="block text-sm font-semibold text-dark-blue mb-1">
                 Mật khẩu <span className="text-red-500">*</span>
               </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 bg-blue-50 border rounded-lg text-dark-blue placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-primary transition-all duration-200 text-sm ${
-                  errors.password ? 'border-red-500' : 'border-blue-200'
-                }`}
-                placeholder="Tối thiểu 8 ký tự"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  aria-describedby="password-guideline"
+                  className={`w-full px-3 py-2 pr-10 bg-blue-50 border rounded-lg text-dark-blue placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-primary transition-all duration-200 text-sm ${
+                    errors.password ? 'border-red-500' : 'border-blue-200'
+                  }`}
+                  placeholder="Mật khẩu"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className="absolute inset-y-0 right-2 flex items-center text-dark-blue/60 hover:text-dark-blue"
+                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                >
+                  <span className="material-icons-round text-base">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                </button>
+              </div>
+              <p id="password-guideline" className="text-xs text-dark-blue/60 mt-1">
+                Sử dụng 8-15 ký tự, bao gồm số, chữ thường, chữ in hoa và ký tự đặc biệt.
+              </p>
               {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
 
@@ -691,16 +706,6 @@ const Register = () => {
                 className="w-full px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-dark-blue placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-primary transition-all duration-200 text-sm"
                 placeholder="Chuyên viên"
               />
-            </div>
-          </div>
-
-          <div className="bg-blue-25 rounded-lg p-3 border border-blue-200">
-            <div className="flex items-center gap-2">
-              <span className="material-icons-round text-blue-primary text-base">verified_user</span>
-              <div>
-                <p className="text-xs font-semibold text-dark-blue">Số điện thoại đã xác thực</p>
-                <p className="text-sm font-bold text-blue-primary">{session?.phoneNumber ?? phoneNumber}</p>
-              </div>
             </div>
           </div>
         </div>
@@ -1241,7 +1246,7 @@ const Register = () => {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-6">
           <div className="w-16 h-16 rounded-xl border-3 border-dark-blue bg-white flex items-center justify-center shadow-md mx-auto mb-3">
-            <img src="/app/assets/images/logo-kienlongbank.png" alt="KienLong Bank" className="w-10 h-10 object-contain" />
+            <img src="/app/assets/images/logo-kienlongbank.png" alt="KienLongBank" className="w-10 h-10 object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-dark-blue mb-1">Đăng ký tài khoản số</h1>
           <p className="text-dark-blue/70 text-sm">Trải nghiệm ngân hàng số hiện đại</p>
@@ -1318,7 +1323,7 @@ const Register = () => {
         </div>
 
         <div className="text-center mt-6 text-xs text-dark-blue/50">
-          © 2025 KienLong Bank. Secure • Reliable • Innovative
+          © 2025 KienLongBank. Secure • Reliable • Innovative
         </div>
       </div>
     </div>

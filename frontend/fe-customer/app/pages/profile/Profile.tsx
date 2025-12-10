@@ -150,7 +150,7 @@ const Profile = () => {
               {/* Số điện thoại */}
               <div>
                 <label className="block text-sm font-semibold text-dark-blue mb-2">
-                  Số điện thoại <span className="text-xs">(Không thể thay đổi)</span>
+                  Số điện thoại
                 </label>
                 <p className="px-4 py-3 bg-gray-100 rounded-xl text-dark-blue/50">
                   {profile?.phoneNumber || 'N/A'} 

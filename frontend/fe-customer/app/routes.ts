@@ -6,5 +6,11 @@ export default [
     route("register", "routes/register.tsx"),
     route("dashboard", "routes/dashboard.tsx"),
     route("profile", "routes/profile.tsx"),
+    route("transfer", "routes/transfer.tsx"),
+    route("transfer/internal", "routes/transferInternal.tsx"),
+    route("transfer/interbank", "routes/transferInterbank.tsx"),
+    route("transfer/fast247", "routes/transferFast.tsx"),
+    route("accounts/list", "routes/accountList.tsx"),
+    // route("accounts/detail/:accountNumber", "routes/accountDetail.tsx"),
 
 ] satisfies RouteConfig;

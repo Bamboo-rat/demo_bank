@@ -1,5 +1,6 @@
 package com.example.customerservice.dto.response.registration;
 
+import com.example.customerservice.entity.enums.KycStatus;
 import com.example.customerservice.redis.model.RegistrationSessionStatus;
 import java.time.Instant;
 import lombok.Builder;
@@ -12,4 +13,5 @@ public class RegistrationSessionResponse {
     String phoneNumber;
     RegistrationSessionStatus status;
     Instant expiresAt;
+    KycStatus kycStatus;
 }

@@ -74,8 +74,9 @@ class AddressService {
     }
   }
 
-  findNameByCode(items: Array<{code: string, name: string}>, code: string): string {
-    return items.find(item => item.code === code)?.name || ''
+  findNameByCode(items: Array<{code: string | number, name: string}>, code: string | number): string {
+    const target = String(code)
+    return items.find(item => String(item.code) === target)?.name || ''
   }
 }
 

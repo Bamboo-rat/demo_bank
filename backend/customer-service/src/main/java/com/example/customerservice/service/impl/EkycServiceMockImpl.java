@@ -6,6 +6,7 @@ import com.example.customerservice.entity.enums.KycStatus;
 import com.example.customerservice.exception.CustomerNotFoundException;
 import com.example.customerservice.service.CustomerService;
 import com.example.customerservice.service.EkycService;
+import com.example.customerservice.service.RegistrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 public class EkycServiceMockImpl implements EkycService {
 
     private final CustomerService customerService;
+    private final RegistrationService registrationService;
 
     @Override
     public EkycResponse verifyUser(CustomerRegisterRequest customerRegisterDTO) {
@@ -39,6 +41,7 @@ public class EkycServiceMockImpl implements EkycService {
         log.info("eKYC simulation completed successfully for national ID: {}", customerRegisterDTO.getNationalId());
 
         if (Boolean.TRUE.equals(response.getVerified())) {
+            registrationService.markKycStatus(customerRegisterDTO.getPhoneNumber(), KycStatus.VERIFIED);
             try {
                 customerService.updateKycStatus(customerRegisterDTO.getNationalId(), KycStatus.VERIFIED);
             } catch (CustomerNotFoundException notFoundException) {

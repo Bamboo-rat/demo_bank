@@ -7,12 +7,8 @@
       "link": "/accounts",
       "subMenu": [
         {
-          "title": "Tài khoản thanh toán",
-          "link": "/accounts/payment"
-        },
-        {
-          "title": "Chi tiết tài khoản",
-          "link": "/accounts/detail"
+          "title": "Danh sách tài khoản",
+          "link": "/accounts/list"
         },
         {
           "title": "Sao kê",

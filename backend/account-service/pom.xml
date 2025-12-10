@@ -30,7 +30,6 @@
 		<java.version>17</java.version>
 	</properties>
 	<dependencies>
-		<!-- Common API for shared DTOs and interfaces -->
 		<dependency>
 			<groupId>com.example</groupId>
 			<artifactId>common-api</artifactId>

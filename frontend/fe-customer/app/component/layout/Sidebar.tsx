@@ -44,6 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
         <div className={`flex items-center gap-3 transition-all duration-200 ${
           isCollapsed ? 'w-full justify-center' : 'w-full'
         }`}>
+          <Link to="/dashboard">
           <div className="w-12 h-12 rounded-xl border-2 border-blue-300 bg-white flex items-center justify-center shadow-sm shrink-0">
             <img 
               src={logo} 
@@ -51,9 +52,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
               className="w-8 h-8 object-contain"
             />
           </div>
+          </Link>
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-semibold text-blue-900 truncate">KienLong Bank</h1>
+              <h1 className="text-lg font-semibold text-blue-900 truncate">KienLongBank</h1>
               <p className="text-sm text-blue-600/70 truncate">Digital Banking</p>
             </div>
           )}
@@ -150,7 +152,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
       }`}>
         {!isCollapsed ? (
           <>
-            <p className="text-sm text-blue-700/60 font-medium">© 2025 KienLong Bank</p>
+            <p className="text-sm text-blue-700/60 font-medium">© 2025 KienLongBank</p>
             <p className="text-xs text-blue-600/50 mt-1">Secure • Reliable • Innovative</p>
           </>
         ) : (

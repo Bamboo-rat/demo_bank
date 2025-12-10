@@ -30,11 +30,14 @@ export const validators = {
     return null
   },
 
-  // Password: tối thiểu 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt
+  // Password: 8-15 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt
   password: (value: string): string | null => {
     if (!value) return 'Mật khẩu không được để trống'
     if (value.length < 8) {
       return 'Mật khẩu tối thiểu 8 ký tự'
+    }
+    if (value.length > 15) {
+      return 'Mật khẩu tối đa 15 ký tự'
     }
     if (!/[A-Z]/.test(value)) {
       return 'Mật khẩu phải có ít nhất 1 chữ in hoa'

@@ -14,6 +14,7 @@ export interface RegistrationSessionResponse {
   phoneNumber: string
   status: string
   expiresAt: string
+  kycStatus?: string
 }
 
 export interface RegistrationProfilePayload {

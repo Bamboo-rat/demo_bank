@@ -16,6 +16,7 @@ import com.example.customerservice.exception.RegistrationRateLimitException;
 import com.example.customerservice.exception.RegistrationSessionDataException;
 import com.example.customerservice.exception.RegistrationSessionNotFoundException;
 import com.example.customerservice.exception.RegistrationSessionStateException;
+import com.example.customerservice.entity.enums.KycStatus;
 import com.example.customerservice.redis.RegistrationSessionRepository;
 import com.example.customerservice.redis.model.RegistrationIdentityData;
 import com.example.customerservice.redis.model.RegistrationProfileData;
@@ -86,10 +87,11 @@ public class RegistrationServiceImpl implements RegistrationService {
 
         String sessionId = UUID.randomUUID().toString();
         RegistrationSession session = RegistrationSession.builder()
-                .sessionId(sessionId)
-                .phoneNumber(phoneNumber)
-                .status(RegistrationSessionStatus.OTP_VERIFIED)
-                .build();
+            .sessionId(sessionId)
+            .phoneNumber(phoneNumber)
+            .status(RegistrationSessionStatus.OTP_VERIFIED)
+            .kycStatus(KycStatus.PENDING)
+            .build();
         session.touch();
         registrationSessionRepository.saveSession(session, SESSION_TTL);
 
@@ -171,9 +173,33 @@ public class RegistrationServiceImpl implements RegistrationService {
         registerRequest.setTemporaryAddress(normalizedTemporary);
         CustomerResponse response = customerService.registerCustomer(registerRequest);
 
+        if (session.getKycStatus() != null && session.getKycStatus() != KycStatus.PENDING) {
+            try {
+                customerService.updateKycStatus(registerRequest.getNationalId(), session.getKycStatus());
+                response.setKycStatus(session.getKycStatus());
+            } catch (Exception ex) {
+                log.error("Failed to synchronize verified KYC status after registration for nationalId {}", registerRequest.getNationalId(), ex);
+            }
+        }
+
         session.setStatus(RegistrationSessionStatus.COMPLETED);
         registrationSessionRepository.deleteSession(session.getPhoneNumber());
         return response;
+    }
+
+    @Override
+    public void markKycStatus(String phoneNumber, KycStatus kycStatus) {
+        if (kycStatus == null) {
+            return;
+        }
+
+        String normalizedPhone = normalizePhone(phoneNumber);
+        registrationSessionRepository.findSession(normalizedPhone).ifPresent(session -> {
+            session.setKycStatus(kycStatus);
+            session.setKycStatusUpdatedAt(Instant.now());
+            session.touch();
+            registrationSessionRepository.saveSession(session, SESSION_TTL);
+        });
     }
 
     private RegistrationSession loadSession(String phoneNumber, String sessionId) {
@@ -230,7 +256,8 @@ public class RegistrationServiceImpl implements RegistrationService {
                 .sessionId(session.getSessionId())
                 .phoneNumber(session.getPhoneNumber())
                 .status(session.getStatus())
-                .expiresAt(expiryReference.plus(SESSION_TTL))
+            .expiresAt(expiryReference.plus(SESSION_TTL))
+            .kycStatus(session.getKycStatus())
                 .build();
     }
 

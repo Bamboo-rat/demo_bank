@@ -4,7 +4,7 @@ import Welcome from "../pages/Welcome";
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Ngân hàng Kiên Long" },
-    { name: "description", content: "Welcome to KienLong Bank Digital Banking" },
+    { name: "description", content: "Welcome to KienLongBank Digital Banking" },
   ];
 }
 

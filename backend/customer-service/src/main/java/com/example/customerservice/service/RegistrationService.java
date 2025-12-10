@@ -8,6 +8,7 @@ import com.example.customerservice.dto.request.registration.RegistrationVerifyRe
 import com.example.customerservice.dto.response.CustomerResponse;
 import com.example.customerservice.dto.response.registration.RegistrationSessionResponse;
 import com.example.customerservice.dto.response.registration.RegistrationStartResponse;
+import com.example.customerservice.entity.enums.KycStatus;
 
 public interface RegistrationService {
 
@@ -20,4 +21,6 @@ public interface RegistrationService {
     RegistrationSessionResponse saveIdentity(RegistrationIdentityRequest request);
 
     CustomerResponse complete(RegistrationCompleteRequest request);
+
+    void markKycStatus(String phoneNumber, KycStatus kycStatus);
 }

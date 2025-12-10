@@ -1,5 +1,6 @@
 package com.example.customerservice.redis.model;
 
+import com.example.customerservice.entity.enums.KycStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.io.Serializable;
 import java.time.Instant;
@@ -22,6 +23,8 @@ public class RegistrationSession implements Serializable {
     private RegistrationSessionStatus status;
     private RegistrationProfileData profileData;
     private RegistrationIdentityData identityData;
+    private KycStatus kycStatus;
+    private Instant kycStatusUpdatedAt;
     @Builder.Default
     private Instant createdAt = Instant.now();
 

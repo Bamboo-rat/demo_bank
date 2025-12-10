@@ -35,11 +35,11 @@ const Login = () => {
           <div className="w-20 h-20 rounded-2xl border-4 border-dark-blue bg-white flex items-center justify-center shadow-lg mx-auto mb-4">
             <img 
               src="/app/assets/images/logo-kienlongbank.png" 
-              alt="KienLong Bank" 
+              alt="KienLongBank" 
               className="w-12 h-12 object-contain"
             />
           </div>
-          <h1 className="text-3xl font-bold text-dark-blue mb-2">KienLong Bank</h1>
+          <h1 className="text-3xl font-bold text-dark-blue mb-2">KienLongBank</h1>
           <p className="text-lg text-dark-blue/70">Ngân hàng trực tuyến</p>
         </div>
 
@@ -188,7 +188,7 @@ const Login = () => {
           
           <div className="pt-4 border-t border-blue-200">
             <p className="text-xs text-dark-blue/50">
-              © 2025 KienLong Bank. Secure • Reliable • Innovative
+              © 2025 KienLongBank. Secure • Reliable • Innovative
             </p>
           </div>
         </div>

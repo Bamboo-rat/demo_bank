@@ -1,4 +1,4 @@
-package com.example.customerservice.events.producer;
+package com.example.customerservice.dubbo.provider;
 
 import com.example.commonapi.dto.customer.CustomerBasicInfo;
 import com.example.commonapi.dubbo.CustomerQueryDubboService;

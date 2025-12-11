@@ -1,4 +1,4 @@
-package com.example.accountservice.events.producer;
+package com.example.accountservice.dubbo.provider;
 
 import com.example.commonapi.dubbo.AccountSyncDubboService;
 import com.example.commonapi.dto.account.AccountSyncRequest;

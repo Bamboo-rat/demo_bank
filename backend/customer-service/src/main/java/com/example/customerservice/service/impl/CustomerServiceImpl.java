@@ -13,7 +13,7 @@ import com.example.customerservice.dto.request.UpdateCoreKycStatusRequest;
 import com.example.customerservice.dto.response.CreateCoreCustomerResponse;
 import com.example.customerservice.dto.response.CoreCifResponse;
 import com.example.customerservice.dto.response.CustomerResponse;
-import com.example.customerservice.events.consumer.AccountSyncConsumer;
+import com.example.customerservice.dubbo.consumer.AccountSyncConsumer;
 import com.example.customerservice.entity.Customer;
 import com.example.customerservice.entity.enums.KycStatus;
 import com.example.customerservice.entity.enums.RiskLevel;

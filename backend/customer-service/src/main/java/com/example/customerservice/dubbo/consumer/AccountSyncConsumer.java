@@ -1,4 +1,4 @@
-package com.example.customerservice.events.consumer;
+package com.example.customerservice.dubbo.consumer;
 
 import com.example.commonapi.dubbo.AccountSyncDubboService;
 import com.example.commonapi.dto.account.AccountSyncRequest;

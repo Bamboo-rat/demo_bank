@@ -1,0 +1,82 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "POST",
+        "urlPath": "/api/partner/acb/verify-account",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$.accountNumber"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "accountNumber": "{{jsonPath request.body '$.accountNumber'}}",
+          "accountName": "NGUYEN VAN A",
+          "bankCode": "ACB",
+          "bankName": "Ngân hàng TMCP Á Châu",
+          "exists": true,
+          "active": true,
+          "message": "Account verified successfully"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "urlPath": "/api/partner/vcb/verify-account",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$.accountNumber"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "accountNumber": "{{jsonPath request.body '$.accountNumber'}}",
+          "accountName": "TRAN THI B",
+          "bankCode": "VCB",
+          "bankName": "Ngân hàng TMCP Ngoại Thương Việt Nam",
+          "exists": true,
+          "active": true,
+          "message": "Account verified successfully"
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "urlPath": "/api/partner/tcb/verify-account",
+        "bodyPatterns": [
+          {
+            "matchesJsonPath": "$.accountNumber"
+          }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "accountNumber": "{{jsonPath request.body '$.accountNumber'}}",
+          "accountName": "LE VAN C",
+          "bankCode": "TCB",
+          "bankName": "Ngân hàng TMCP Kỹ Thương Việt Nam",
+          "exists": true,
+          "active": true,
+          "message": "Account verified successfully"
+        }
+      }
+    }
+  ]
+}

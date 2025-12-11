@@ -2,6 +2,7 @@ package com.example.accountservice.controller;
 
 import com.example.accountservice.client.CustomerServiceClient;
 import com.example.accountservice.dto.request.UpdateAccountRequest;
+import com.example.accountservice.dto.response.AccountInfoDTO;
 import com.example.accountservice.dto.response.AccountListResponse;
 import com.example.accountservice.dto.response.AccountResponse;
 import com.example.accountservice.dto.response.CustomerValidationResponse;
@@ -196,5 +197,18 @@ public class AccountController {
             log.error("Failed to resolve customerId for authProviderId: {}", authProviderId, e);
             throw new IllegalStateException("Unable to resolve customerId: " + e.getMessage(), e);
         }
+    }
+
+    @GetMapping("/internal/info/{accountNumber}")
+    public ResponseEntity<ApiResponse<AccountInfoDTO>> getAccountInfoByNumber(
+            @PathVariable String accountNumber) {
+
+        log.info("Internal request to get account info: {}", accountNumber);
+
+        AccountInfoDTO accountInfo = accountService.getAccountInfoByNumber(accountNumber);
+
+        return ResponseEntity.ok(
+            ApiResponse.success("Account information retrieved successfully", accountInfo)
+        );
     }
 }

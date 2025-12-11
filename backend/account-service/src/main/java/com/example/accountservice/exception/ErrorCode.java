@@ -20,6 +20,11 @@ public enum ErrorCode {
     ACCOUNT_LIMIT_EXCEEDED("ACC_012", "Account limit exceeded", "Vượt quá giới hạn tài khoản", HttpStatus.BAD_REQUEST),
     INSUFFICIENT_INITIAL_DEPOSIT("ACC_013", "Insufficient initial deposit", "Tiền gửi ban đầu không đủ", HttpStatus.BAD_REQUEST),
 
+    // Beneficiary related errors
+    BENEFICIARY_NOT_FOUND("BEN_001", "Beneficiary not found", "Không tìm thấy người thụ hưởng", HttpStatus.NOT_FOUND),
+    BENEFICIARY_ALREADY_EXISTS("BEN_002", "Beneficiary already exists", "Người thụ hưởng đã tồn tại", HttpStatus.CONFLICT),
+    UNAUTHORIZED_ACCESS("BEN_003", "Unauthorized access to beneficiary", "Không có quyền truy cập người thụ hưởng", HttpStatus.FORBIDDEN),
+
     // Customer related errors
     INVALID_CUSTOMER("CUS_001", "Invalid customer", "Khách hàng không hợp lệ", HttpStatus.BAD_REQUEST),
     INACTIVE_CUSTOMER("CUS_002", "Customer is inactive", "Khách hàng không hoạt động", HttpStatus.BAD_REQUEST),

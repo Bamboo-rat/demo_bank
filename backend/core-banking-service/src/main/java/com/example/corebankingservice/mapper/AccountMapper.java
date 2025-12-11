@@ -4,6 +4,7 @@ import com.example.corebankingservice.dto.request.OpenAccountCoreRequest;
 import com.example.corebankingservice.dto.response.AccountDetailResponse;
 import com.example.corebankingservice.dto.response.AccountStatusHistoryResponse;
 import com.example.corebankingservice.dto.response.AccountStatusResponse;
+import com.example.corebankingservice.dto.response.BalanceResponse;
 import com.example.corebankingservice.entity.Account;
 import com.example.corebankingservice.entity.AccountStatusHistory;
 import org.mapstruct.Mapper;
@@ -36,4 +37,8 @@ public interface AccountMapper {
     AccountStatusResponse toStatus(Account account);
 
     AccountStatusHistoryResponse toHistory(AccountStatusHistory history);
+
+    @Mapping(target = "availableBalance", expression = "java(account.getBalance().subtract(account.getHoldAmount()))")
+    @Mapping(target = "checkedAt", expression = "java(java.time.LocalDateTime.now())")
+    BalanceResponse toBalance(Account account);
 }

@@ -6,6 +6,7 @@ import com.example.corebankingservice.dto.request.OpenAccountCoreRequest;
 import com.example.corebankingservice.dto.response.AccountDetailResponse;
 import com.example.corebankingservice.dto.response.AccountStatusHistoryResponse;
 import com.example.corebankingservice.dto.response.AccountStatusResponse;
+import com.example.corebankingservice.dto.response.BalanceResponse;
 
 import java.util.List;
 
@@ -30,4 +31,6 @@ public interface AccountLifecycleService {
     AccountDetailResponse getAccountDetail(String accountNumber);
 
     List<AccountStatusHistoryResponse> getStatusHistory(String accountNumber);
+    
+    BalanceResponse getAvailableBalance(String accountNumber);
 }

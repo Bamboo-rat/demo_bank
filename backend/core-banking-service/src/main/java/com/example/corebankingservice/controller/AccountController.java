@@ -7,6 +7,7 @@ import com.example.corebankingservice.dto.request.OpenAccountCoreRequest;
 import com.example.corebankingservice.dto.response.AccountDetailResponse;
 import com.example.corebankingservice.dto.response.AccountStatusHistoryResponse;
 import com.example.corebankingservice.dto.response.AccountStatusResponse;
+import com.example.corebankingservice.dto.response.BalanceResponse;
 import com.example.corebankingservice.service.AccountLifecycleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -88,5 +89,11 @@ public class AccountController {
     public ResponseEntity<ApiResponse<List<AccountStatusHistoryResponse>>> getStatusHistory(@PathVariable String accountNumber) {
         List<AccountStatusHistoryResponse> history = accountLifecycleService.getStatusHistory(accountNumber);
         return ResponseEntity.ok(ApiResponse.success("Account status history fetched", history));
+    }
+
+    @GetMapping("/{accountNumber}/balance")
+    public ResponseEntity<ApiResponse<BalanceResponse>> getBalance(@PathVariable String accountNumber) {
+        BalanceResponse response = accountLifecycleService.getAvailableBalance(accountNumber);
+        return ResponseEntity.ok(ApiResponse.success("Balance fetched successfully", response));
     }
 }

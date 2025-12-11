@@ -6,6 +6,7 @@ import com.example.corebankingservice.dto.request.OpenAccountCoreRequest;
 import com.example.corebankingservice.dto.response.AccountDetailResponse;
 import com.example.corebankingservice.dto.response.AccountStatusHistoryResponse;
 import com.example.corebankingservice.dto.response.AccountStatusResponse;
+import com.example.corebankingservice.dto.response.BalanceResponse;
 import com.example.corebankingservice.entity.Account;
 import com.example.corebankingservice.entity.AccountStatusHistory;
 import com.example.corebankingservice.entity.enums.AccountStatus;
@@ -191,6 +192,15 @@ public class AccountLifecycleServiceImpl implements AccountLifecycleService {
     public List<AccountStatusHistoryResponse> getStatusHistory(String accountNumber) {
         List<AccountStatusHistory> history = historyRepository.findByAccountNumberOrderByChangedAtDesc(accountNumber);
         return history.stream().map(accountMapper::toHistory).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BalanceResponse getAvailableBalance(String accountNumber) {
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found: " + accountNumber));
+        
+        return accountMapper.toBalance(account);
     }
 
     private Account getAccountForUpdate(String accountNumber) {

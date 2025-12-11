@@ -1,6 +1,7 @@
 package com.example.accountservice.service.impl;
 
 import com.example.accountservice.dto.request.UpdateAccountRequest;
+import com.example.accountservice.dto.response.AccountInfoDTO;
 import com.example.accountservice.dto.response.AccountResponse;
 import com.example.accountservice.entity.*;
 import com.example.accountservice.entity.enums.AccountStatus;
@@ -9,9 +10,12 @@ import com.example.accountservice.mapper.AccountMapper;
 import com.example.accountservice.repository.AccountRepository;
 import com.example.accountservice.service.AccountService;
 
+import com.example.commonapi.dto.customer.CustomerBasicInfo;
+import com.example.commonapi.dubbo.CustomerQueryDubboService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -24,6 +28,9 @@ public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
     private final AccountMapper accountMapper;
+    
+    @DubboReference(version = "1.0.0", group = "banking-services", check = false, timeout = 5000)
+    private CustomerQueryDubboService customerQueryDubboService;
 
     @Override
     public AccountResponse getAccountDetails(String accountNumber) {
@@ -121,5 +128,47 @@ public class AccountServiceImpl implements AccountService {
 
         log.info("Successfully updated account: {}", accountNumber);
         return accountMapper.toResponse(updatedAccount);
+    }
+
+    @Override
+    public AccountInfoDTO getAccountInfoByNumber(String accountNumber) {
+        log.info("Fetching account info for internal transfer: {}", accountNumber);
+
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountNumber));
+
+        return AccountInfoDTO.builder()
+                .accountNumber(account.getAccountNumber())
+                .accountHolderName(getAccountHolderName(account)) 
+                .accountType(account.getAccountType())
+                .status(account.getStatus())
+                .bankName("Kiên Long Bank")
+                .bankCode("KLB") 
+                .cifNumber(account.getCifNumber())
+                .isActive(account.getStatus() == AccountStatus.ACTIVE)
+                .build();
+    }
+
+    /**
+     * Get account holder name from Customer Service via Dubbo
+     */
+    private String getAccountHolderName(Account account) {
+        try {
+            CustomerBasicInfo customerInfo = customerQueryDubboService.getCustomerBasicInfo(account.getCustomerId());
+            
+            if (customerInfo != null && customerInfo.getFullName() != null) {
+                log.info("Retrieved customer name via Dubbo: {} for customerId: {}", 
+                        customerInfo.getFullName(), account.getCustomerId());
+                return customerInfo.getFullName();
+            }
+            
+            log.warn("Customer info not found via Dubbo for customerId: {}", account.getCustomerId());
+            return "Khách hàng " + account.getCustomerId().substring(0, 8);
+            
+        } catch (Exception e) {
+            log.error("Error calling customer service via Dubbo for customerId: {}", 
+                    account.getCustomerId(), e);
+            return "Khách hàng " + account.getCustomerId().substring(0, 8);
+        }
     }
 }

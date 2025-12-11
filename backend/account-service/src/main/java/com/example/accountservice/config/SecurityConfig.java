@@ -20,6 +20,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/accounts/internal/**").permitAll()  // Internal API for testing
                         .requestMatchers("/api/accounts/**").hasRole("USER")  // Account management endpoints
                         .requestMatchers("/api/customers/**").hasRole("USER")
                         .requestMatchers("/admin/**").hasRole("ADMIN")

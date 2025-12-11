@@ -44,5 +44,5 @@ public class Transaction {
     @CreationTimestamp
     private LocalDateTime transactionDate;
 
-    private String createdBy; // customerId
+    private String createdBy;
 }

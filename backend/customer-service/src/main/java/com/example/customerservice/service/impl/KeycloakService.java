@@ -186,6 +186,30 @@ public class KeycloakService {
         }
     }
 
+    public Object refreshToken(String refreshToken) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+            map.add("client_id", loginClientId);
+            map.add("client_secret", loginClientSecret);
+            map.add("refresh_token", refreshToken);
+            map.add("grant_type", "refresh_token");
+
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(map, headers);
+            String tokenUrl = authServerUrl + "/realms/" + realm + "/protocol/openid-connect/token";
+
+            ResponseEntity<Object> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, entity, Object.class);
+            log.info("Refresh token thanh cong");
+            return response.getBody();
+        } catch (HttpClientErrorException e) {
+            log.warn("Refresh token that bai. Ly do: {}", e.getResponseBodyAsString());
+            throw new AuthenticationException(ErrorCode.INVALID_CREDENTIALS);
+        }
+    }
+
     public void updateUserAttribute(String userId, String attributeName, String attributeValue) {
         UsersResource usersResource = keycloakAdminClient.realm(realm).users();
         UserRepresentation user = usersResource.get(userId).toRepresentation();

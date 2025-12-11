@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -29,6 +31,19 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Object>> login(@Valid @RequestBody CustomerLoginDTO loginDto) {
         Object tokenResponse = customerService.loginCustomer(loginDto);
         ApiResponse<Object> response = ApiResponse.success("Đăng nhập thành công!", tokenResponse);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<Object>> refresh(@RequestBody Map<String, String> request) {
+        String refreshToken = request.get("refresh_token");
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.badRequest()
+                .body(ApiResponse.error("Refresh token is required"));
+        }
+        
+        Object tokenResponse = customerService.refreshToken(refreshToken);
+        ApiResponse<Object> response = ApiResponse.success("Token refreshed successfully!", tokenResponse);
         return ResponseEntity.ok(response);
     }
 

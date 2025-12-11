@@ -212,6 +212,12 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
+    public Object refreshToken(String refreshToken) {
+        log.info("Refreshing access token");
+        return keycloakService.refreshToken(refreshToken);
+    }
+
+    @Override
     public CustomerResponse getMyInfo() {
         // Get user info from JWT token in security context
         Jwt principal = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

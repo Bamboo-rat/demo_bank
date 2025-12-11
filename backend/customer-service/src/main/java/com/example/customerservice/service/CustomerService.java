@@ -9,6 +9,7 @@ import com.example.customerservice.entity.enums.KycStatus;
 public interface CustomerService {
     CustomerResponse registerCustomer(CustomerRegisterRequest registerDto);
     Object loginCustomer(CustomerLoginDTO loginDto);
+    Object refreshToken(String refreshToken);
     CustomerResponse getMyInfo();
     CustomerResponse getCustomerById(String customerId);
     CustomerResponse getCustomerByAuthProviderId(String authProviderId);

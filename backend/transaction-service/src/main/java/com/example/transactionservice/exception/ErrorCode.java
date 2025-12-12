@@ -18,6 +18,13 @@ public enum ErrorCode {
     TRANSACTION_CANNOT_BE_REVERSED("TRX_010", "Transaction cannot be reversed", "Giao dịch không thể hoàn tác", HttpStatus.BAD_REQUEST),
     DUPLICATE_TRANSACTION("TRX_011", "Duplicate transaction detected", "Phát hiện giao dịch trùng lặp", HttpStatus.CONFLICT),
     TRANSACTION_EXPIRED("TRX_012", "Transaction has expired", "Giao dịch đã hết hạn", HttpStatus.BAD_REQUEST),
+    TRANSFER_FAILED("TRX_013", "Transfer failed", "Chuyển khoản thất bại", HttpStatus.INTERNAL_SERVER_ERROR),
+
+    // OTP related errors
+    INVALID_OTP("OTP_001", "Invalid or expired OTP", "OTP không hợp lệ hoặc đã hết hạn", HttpStatus.BAD_REQUEST),
+    OTP_EXPIRED("OTP_002", "OTP has expired", "OTP đã hết hạn", HttpStatus.BAD_REQUEST),
+    OTP_MAX_ATTEMPTS_EXCEEDED("OTP_003", "Maximum OTP attempts exceeded", "Vượt quá số lần nhập OTP", HttpStatus.BAD_REQUEST),
+    OTP_GENERATION_FAILED("OTP_004", "Failed to generate OTP", "Không thể tạo OTP", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // Account related errors
     SOURCE_ACCOUNT_NOT_FOUND("ACC_001", "Source account not found", "Không tìm thấy tài khoản nguồn", HttpStatus.NOT_FOUND),
@@ -27,6 +34,8 @@ public enum ErrorCode {
     ACCOUNT_BLOCKED("ACC_005", "Account is blocked", "Tài khoản bị khóa", HttpStatus.BAD_REQUEST),
     SAME_ACCOUNT_TRANSFER("ACC_006", "Cannot transfer to same account", "Không thể chuyển khoản cùng tài khoản", HttpStatus.BAD_REQUEST),
     UNAUTHORIZED_ACCOUNT_ACCESS("ACC_007", "Unauthorized account access", "Truy cập tài khoản không được phép", HttpStatus.FORBIDDEN),
+    ACCOUNT_VALIDATION_FAILED("ACC_008", "Account validation failed", "Xác thực tài khoản thất bại", HttpStatus.BAD_REQUEST),
+    ACCOUNT_NOT_ACTIVE("ACC_009", "Account is not active", "Tài khoản không hoạt động", HttpStatus.BAD_REQUEST),
 
     // External service errors
     ACCOUNT_SERVICE_UNAVAILABLE("EXT_001", "Account service unavailable", "Dịch vụ tài khoản không khả dụng", HttpStatus.SERVICE_UNAVAILABLE),

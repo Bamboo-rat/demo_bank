@@ -3,6 +3,11 @@ package com.example.transactionservice.exception;
 import java.math.BigDecimal;
 
 public class InsufficientBalanceException extends BaseException {
+    
+    public InsufficientBalanceException(String message) {
+        super(ErrorCode.INSUFFICIENT_BALANCE, message);
+    }
+    
     public InsufficientBalanceException() {
         super(ErrorCode.INSUFFICIENT_BALANCE);
     }

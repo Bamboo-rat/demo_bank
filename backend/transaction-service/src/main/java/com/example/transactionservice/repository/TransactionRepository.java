@@ -23,7 +23,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE " +
             "t.sourceAccountId = :accountId AND " +
             "t.transactionDate >= :startDate AND " +
-            "t.status = 'SUCCESS'")
+            "t.status = 'COMPLETED'")
     BigDecimal getDailyTransactionAmount(
             @Param("accountId") String accountId,
             @Param("startDate") LocalDateTime startDate

@@ -255,6 +255,13 @@ public class TransferServiceImpl implements TransferService {
      * Validate accounts exist and active
      */
     private void validateAccounts(String sourceAccount, String destinationAccount) {
+        if (sourceAccount.equals(destinationAccount)) {
+            throw new AccountValidationException(
+                    ErrorCode.SAME_ACCOUNT_TRANSFER,
+                    "Cannot transfer to the same account"
+            );
+        }
+
         // Validate source account
         AccountInfoDTO sourceAccountInfo = accountServiceClient.getAccountInfo(sourceAccount);
         if (sourceAccountInfo == null) {

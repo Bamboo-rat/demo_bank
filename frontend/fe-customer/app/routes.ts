@@ -11,6 +11,7 @@ export default [
     route("transfer/interbank", "routes/transferInterbank.tsx"),
     route("transfer/fast247", "routes/transferFast.tsx"),
     route("accounts/list", "routes/accountList.tsx"),
+    route("transactions", "routes/transactions.tsx"),
     // route("accounts/detail/:accountNumber", "routes/accountDetail.tsx"),
 
 ] satisfies RouteConfig;

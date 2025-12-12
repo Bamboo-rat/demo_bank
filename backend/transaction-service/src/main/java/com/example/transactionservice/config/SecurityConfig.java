@@ -21,6 +21,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/transactions/internal/**").permitAll()
                         .requestMatchers("/api/banks/**").permitAll()
+                        .requestMatchers("/api/accounts/info/**").permitAll()
                         .requestMatchers("/api/transactions/**").hasRole("USER")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

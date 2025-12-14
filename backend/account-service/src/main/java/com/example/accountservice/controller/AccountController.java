@@ -8,6 +8,14 @@ import com.example.accountservice.dto.response.AccountResponse;
 import com.example.accountservice.dto.response.CustomerValidationResponse;
 import com.example.accountservice.service.AccountService;
 import com.example.commonapi.dto.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +40,7 @@ import java.util.List;
  * Note: Account creation/closure is handled by CustomerService orchestrator
  * calling CoreBankingService, then syncing metadata to AccountService via Dubbo.
  */
+@Tag(name = "Account Management", description = "APIs quản lý tài khoản ngân hàng (xem thông tin, danh sách, trạng thái, cập nhật metadata)")
 @RestController
 @RequestMapping("/api/accounts")
 @RequiredArgsConstructor
@@ -49,8 +58,20 @@ public class AccountController {
      * Security: Requires USER role
      * Only returns account if it belongs to authenticated customer
      */
+    @Operation(
+        summary = "Lấy thông tin chi tiết tài khoản",
+        description = "Xem thông tin chi tiết tài khoản theo số tài khoản. Chỉ trả về tài khoản thuộc về khách hàng đã xác thực."
+    )
+    @ApiResponses(value = {
+        @SwaggerApiResponse(responseCode = "200", description = "Lấy thông tin tài khoản thành công"),
+        @SwaggerApiResponse(responseCode = "403", description = "Không có quyền truy cập tài khoản này"),
+        @SwaggerApiResponse(responseCode = "404", description = "Không tìm thấy tài khoản"),
+        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+    })
+    @SecurityRequirement(name = "bearer-jwt")
     @GetMapping("/{accountNumber}")
     public ResponseEntity<ApiResponse<AccountResponse>> getAccountDetails(
+            @Parameter(description = "Số tài khoản cần xem", example = "ACC-2024-0001")
             @PathVariable String accountNumber) {
 
         log.info("Request to get account details: {}", accountNumber);
@@ -77,6 +98,15 @@ public class AccountController {
      * Security: Requires USER role
      * Returns only accounts belonging to authenticated customer
      */
+    @Operation(
+        summary = "Lấy danh sách tài khoản của khách hàng",
+        description = "Lấy tất cả tài khoản thuộc về khách hàng đã đăng nhập."
+    )
+    @ApiResponses(value = {
+        @SwaggerApiResponse(responseCode = "200", description = "Lấy danh sách tài khoản thành công"),
+        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+    })
+    @SecurityRequirement(name = "bearer-jwt")
     @GetMapping("/my-accounts")
     public ResponseEntity<ApiResponse<AccountListResponse>> getMyAccounts() {
 
@@ -107,8 +137,20 @@ public class AccountController {
      *
      * Security: Requires USER role
      */
+    @Operation(
+        summary = "Kiểm tra trạng thái kích hoạt tài khoản",
+        description = "Kiểm tra xem tài khoản có đang ở trạng thái ACTIVE hay không."
+    )
+    @ApiResponses(value = {
+        @SwaggerApiResponse(responseCode = "200", description = "Kiểm tra trạng thái thành công"),
+        @SwaggerApiResponse(responseCode = "403", description = "Không có quyền truy cập tài khoản này"),
+        @SwaggerApiResponse(responseCode = "404", description = "Không tìm thấy tài khoản"),
+        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+    })
+    @SecurityRequirement(name = "bearer-jwt")
     @GetMapping("/{accountNumber}/status")
     public ResponseEntity<ApiResponse<Boolean>> checkAccountStatus(
+            @Parameter(description = "Số tài khoản cần kiểm tra", example = "ACC-2024-0001")
             @PathVariable String accountNumber) {
 
         log.info("Request to check status for account: {}", accountNumber);
@@ -145,9 +187,26 @@ public class AccountController {
      * - Update interest rate (Savings accounts)
      * - Update term months (Savings accounts)
      */
+    @Operation(
+        summary = "Cập nhật thông tin tài khoản",
+        description = "Cập nhật metadata của tài khoản (credit limit cho tài khoản tín dụng, lãi suất/kỳ hạn cho tài khoản tiết kiệm). Chỉ cập nhật được tài khoản của chính mình."
+    )
+    @ApiResponses(value = {
+        @SwaggerApiResponse(responseCode = "200", description = "Cập nhật tài khoản thành công"),
+        @SwaggerApiResponse(responseCode = "403", description = "Không có quyền cập nhật tài khoản này"),
+        @SwaggerApiResponse(responseCode = "404", description = "Không tìm thấy tài khoản"),
+        @SwaggerApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
+        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+    })
+    @SecurityRequirement(name = "bearer-jwt")
     @PatchMapping("/{accountNumber}")
     public ResponseEntity<ApiResponse<AccountResponse>> updateAccount(
+            @Parameter(description = "Số tài khoản cần cập nhật", example = "ACC-2024-0001")
             @PathVariable String accountNumber,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "Thông tin cần cập nhật",
+                required = true
+            )
             @Valid @RequestBody UpdateAccountRequest request) {
 
         String customerId = getAuthenticatedCustomerId();
@@ -199,8 +258,17 @@ public class AccountController {
         }
     }
 
+    @Operation(
+        summary = "Lấy thông tin tài khoản (Internal API)",
+        description = "API nội bộ dùng để lấy thông tin tài khoản cho các service khác (không yêu cầu authentication)."
+    )
+    @ApiResponses(value = {
+        @SwaggerApiResponse(responseCode = "200", description = "Lấy thông tin tài khoản thành công"),
+        @SwaggerApiResponse(responseCode = "404", description = "Không tìm thấy tài khoản")
+    })
     @GetMapping("/internal/info/{accountNumber}")
     public ResponseEntity<ApiResponse<AccountInfoDTO>> getAccountInfoByNumber(
+            @Parameter(description = "Số tài khoản", example = "ACC-2024-0001")
             @PathVariable String accountNumber) {
 
         log.info("Internal request to get account info: {}", accountNumber);

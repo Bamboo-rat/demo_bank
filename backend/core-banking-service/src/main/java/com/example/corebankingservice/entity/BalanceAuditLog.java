@@ -16,11 +16,16 @@ import java.time.LocalDateTime;
  * Audit log for balance operations
  */
 @Entity
-@Table(name = "balance_audit_logs", indexes = {
+@Table(name = "balance_audit_logs", 
+    indexes = {
         @Index(name = "idx_balance_audit_account", columnList = "account_number"),
         @Index(name = "idx_balance_audit_tx_ref", columnList = "transaction_reference"),
         @Index(name = "idx_balance_audit_time", columnList = "operation_time")
-})
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_transaction_reference", columnNames = "transaction_reference")
+    }
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

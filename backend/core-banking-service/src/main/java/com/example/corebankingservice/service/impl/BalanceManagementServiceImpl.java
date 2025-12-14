@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -32,14 +33,36 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
     private final MessageSource messageSource;
 
     @Override
-    @Transactional(isolation = Isolation.SERIALIZABLE)
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public BalanceOperationResponse debit(BalanceOperationRequest request) {
         log.info("Processing DEBIT operation: account={}, amount={}, ref={}", 
                 request.getAccountNumber(), request.getAmount(), request.getTransactionReference());
 
+        // Check for idempotency: has this transaction already been processed
+        List<BalanceAuditLog> existingAudits = auditLogRepository.findByTransactionReference(request.getTransactionReference());
+        if (!existingAudits.isEmpty()) {
+            BalanceAuditLog existingAudit = existingAudits.get(0);
+            log.warn("DEBIT operation already processed: ref={}, audit_id={}", 
+                    request.getTransactionReference(), existingAudit.getAuditId());
+            
+            // Return the existing operation result (idempotent response)
+            return BalanceOperationResponse.builder()
+                    .accountNumber(existingAudit.getAccountNumber())
+                    .previousBalance(existingAudit.getPreviousBalance())
+                    .operationAmount(existingAudit.getOperationAmount())
+                    .newBalance(existingAudit.getNewBalance())
+                    .availableBalance(existingAudit.getAvailableBalance())
+                    .currency(existingAudit.getCurrency())
+                    .transactionReference(existingAudit.getTransactionReference())
+                    .operationType(existingAudit.getOperationType())
+                    .operationTime(existingAudit.getOperationTime())
+                    .message(getMessage("success.debit.idempotent"))
+                    .build();
+        }
+
         // Lock account for update (SELECT ... FOR UPDATE)
         Account account = accountRepository.findByAccountNumberForUpdate(request.getAccountNumber())
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found: " + request.getAccountNumber()));
+                .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.account.not.found", request.getAccountNumber())));
 
         // Validate account status
         validateAccountForDebit(account);
@@ -94,7 +117,7 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
                 .transactionReference(request.getTransactionReference())
                 .operationType("DEBIT")
                 .operationTime(LocalDateTime.now())
-                .message("Debit operation completed successfully")
+                .message(getMessage("success.debit.completed"))
                 .build();
     }
 
@@ -104,9 +127,31 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
         log.info("Processing CREDIT operation: account={}, amount={}, ref={}", 
                 request.getAccountNumber(), request.getAmount(), request.getTransactionReference());
 
+        // Check for idempotency: has this transaction already been processed?
+        List<BalanceAuditLog> existingAudits = auditLogRepository.findByTransactionReference(request.getTransactionReference());
+        if (!existingAudits.isEmpty()) {
+            BalanceAuditLog existingAudit = existingAudits.get(0);
+            log.warn("CREDIT operation already processed: ref={}, audit_id={}", 
+                    request.getTransactionReference(), existingAudit.getAuditId());
+            
+            // Return the existing operation result (idempotent response)
+            return BalanceOperationResponse.builder()
+                    .accountNumber(existingAudit.getAccountNumber())
+                    .previousBalance(existingAudit.getPreviousBalance())
+                    .operationAmount(existingAudit.getOperationAmount())
+                    .newBalance(existingAudit.getNewBalance())
+                    .availableBalance(existingAudit.getAvailableBalance())
+                    .currency(existingAudit.getCurrency())
+                    .transactionReference(existingAudit.getTransactionReference())
+                    .operationType(existingAudit.getOperationType())
+                    .operationTime(existingAudit.getOperationTime())
+                    .message(getMessage("success.credit.idempotent"))
+                    .build();
+        }
+
         // Lock account for update
         Account account = accountRepository.findByAccountNumberForUpdate(request.getAccountNumber())
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found: " + request.getAccountNumber()));
+                .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.account.not.found", request.getAccountNumber())));
 
         // Validate account status (can receive credits even if dormant)
         validateAccountForCredit(account);
@@ -153,7 +198,7 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
                 .transactionReference(request.getTransactionReference())
                 .operationType("CREDIT")
                 .operationTime(LocalDateTime.now())
-                .message("Credit operation completed successfully")
+                .message(getMessage("success.credit.completed"))
                 .build();
     }
 
@@ -163,7 +208,7 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
         log.info("Processing HOLD operation: account={}, amount={}, ref={}", accountNumber, amount, transactionReference);
 
         Account account = accountRepository.findByAccountNumberForUpdate(accountNumber)
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found: " + accountNumber));
+                .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.account.not.found", accountNumber)));
 
         validateAccountForDebit(account);
 
@@ -190,7 +235,7 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
                 .availableBalance(newAvailableBalance)
                 .currency(savedAccount.getCurrency())
                 .transactionReference(transactionReference)
-                .description("Amount held for pending transaction")
+                .description(getMessage("audit.description.amount.held"))
                 .build();
 
         auditLogRepository.save(auditLog);
@@ -208,7 +253,7 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
                 .transactionReference(transactionReference)
                 .operationType("HOLD")
                 .operationTime(LocalDateTime.now())
-                .message("Amount held successfully")
+                .message(getMessage("success.hold.completed"))
                 .build();
     }
 
@@ -218,10 +263,10 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
         log.info("Processing RELEASE_HOLD operation: account={}, amount={}, ref={}", accountNumber, amount, transactionReference);
 
         Account account = accountRepository.findByAccountNumberForUpdate(accountNumber)
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found: " + accountNumber));
+                .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.account.not.found", accountNumber)));
 
         if (account.getHoldAmount().compareTo(amount) < 0) {
-            throw new BusinessException("Hold amount is less than release amount");
+            throw new BusinessException(getMessage("error.hold.amount.insufficient"));
         }
 
         BigDecimal previousHoldAmount = account.getHoldAmount();
@@ -241,7 +286,7 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
                 .availableBalance(newAvailableBalance)
                 .currency(savedAccount.getCurrency())
                 .transactionReference(transactionReference)
-                .description("Hold amount released")
+                .description(getMessage("audit.description.hold.released"))
                 .build();
 
         auditLogRepository.save(auditLog);
@@ -259,7 +304,7 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
                 .transactionReference(transactionReference)
                 .operationType("RELEASE_HOLD")
                 .operationTime(LocalDateTime.now())
-                .message("Hold amount released successfully")
+                .message(getMessage("success.release.hold.completed"))
                 .build();
     }
 
@@ -284,8 +329,8 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
         }
     }
 
-    private String getMessage(String code) {
+    private String getMessage(String code, Object... args) {
         Locale locale = LocaleContextHolder.getLocale();
-        return messageSource.getMessage(code, null, code, locale);
+        return messageSource.getMessage(code, args, code, locale);
     }
 }

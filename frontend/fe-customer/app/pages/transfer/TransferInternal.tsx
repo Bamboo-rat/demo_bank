@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import Layout from '~/component/layout/Layout'
 import { transactionService, type TransferRequest, type TransferResponse, type AccountInfo } from '~/service/transactionService'
 import { accountService, type AccountSummary } from '~/service/accountService'
+import { customerService, type CustomerProfile } from '~/service/customerService'
 
 interface TransferStep {
   step: 'input' | 'confirm' | 'otp' | 'success'
@@ -13,6 +14,7 @@ const TransferInternal = () => {
   const [currentStep, setCurrentStep] = useState<TransferStep['step']>('input')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
+  const [profile, setProfile] = useState<CustomerProfile | null>(null)
   
   // Form data
   const [sourceAccount, setSourceAccount] = useState<AccountSummary | null>(null)
@@ -31,7 +33,17 @@ const TransferInternal = () => {
   
   React.useEffect(() => {
     loadMyAccounts()
+    loadProfile()
   }, [])
+  
+  const loadProfile = async () => {
+    try {
+      const profileData = await customerService.getMyProfile()
+      setProfile(profileData)
+    } catch (err) {
+      console.error('Failed to load profile:', err)
+    }
+  }
   
   const loadMyAccounts = async () => {
     try {
@@ -101,6 +113,10 @@ const TransferInternal = () => {
   
   const handleConfirmTransfer = async () => {
     if (!sourceAccount) return
+    if (!profile?.phoneNumber) {
+      setError('Không tìm thấy số điện thoại. Vui lòng cập nhật thông tin cá nhân.')
+      return
+    }
     
     setLoading(true)
     setError('')
@@ -112,7 +128,8 @@ const TransferInternal = () => {
         amount: parseFloat(amount),
         description: description || 'Chuyển tiền nội bộ',
         feePaymentMethod,
-        transferType: 'INTERNAL'
+        transferType: 'INTERNAL',
+        phoneNumber: profile.phoneNumber
       }
       
       const response = await transactionService.initiateTransfer(request)

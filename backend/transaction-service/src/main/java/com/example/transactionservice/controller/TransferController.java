@@ -34,7 +34,7 @@ public class TransferController {
     public ResponseEntity<ApiResponse<TransferResponseDTO>> initiateTransfer(
             @Valid @RequestBody TransferRequestDTO request) {
         
-        log.info("🚀 Initiating transfer from {} to {}", 
+        log.info("Initiating transfer from {} to {}", 
             request.getSourceAccountNumber(), 
             request.getDestinationAccountNumber());
 

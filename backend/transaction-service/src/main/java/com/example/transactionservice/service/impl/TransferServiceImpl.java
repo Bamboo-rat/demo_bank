@@ -262,25 +262,48 @@ public class TransferServiceImpl implements TransferService {
             );
         }
 
-        // Validate source account
-        AccountInfoDTO sourceAccountInfo = accountServiceClient.getAccountInfo(sourceAccount);
-        if (sourceAccountInfo == null) {
-            throw new AccountValidationException("Source account not found: " + sourceAccount);
-        }
-        if (!sourceAccountInfo.getIsActive()) {
-            throw new AccountValidationException("Source account is not active");
-        }
+        try {
+            // Validate source account
+            AccountInfoDTO sourceAccountInfo = accountServiceClient.getAccountInfo(sourceAccount);
+            if (sourceAccountInfo == null) {
+                throw new AccountValidationException(
+                    ErrorCode.SOURCE_ACCOUNT_NOT_FOUND,
+                    "Source account not found: " + sourceAccount
+                );
+            }
+            if (!sourceAccountInfo.getIsActive()) {
+                throw new AccountValidationException(
+                    ErrorCode.ACCOUNT_NOT_ACTIVE,
+                    "Source account is not active"
+                );
+            }
 
-        // Validate destination account
-        AccountInfoDTO destAccountInfo = accountServiceClient.getAccountInfo(destinationAccount);
-        if (destAccountInfo == null) {
-            throw new AccountValidationException("Destination account not found: " + destinationAccount);
-        }
-        if (!destAccountInfo.getIsActive()) {
-            throw new AccountValidationException("Destination account is not active");
-        }
+            // Validate destination account
+            AccountInfoDTO destAccountInfo = accountServiceClient.getAccountInfo(destinationAccount);
+            if (destAccountInfo == null) {
+                throw new AccountValidationException(
+                    ErrorCode.DESTINATION_ACCOUNT_NOT_FOUND,
+                    "Destination account not found: " + destinationAccount
+                );
+            }
+            if (!destAccountInfo.getIsActive()) {
+                throw new AccountValidationException(
+                    ErrorCode.ACCOUNT_NOT_ACTIVE,
+                    "Destination account is not active"
+                );
+            }
 
-        log.info("Accounts validated successfully");
+            log.info("Accounts validated successfully");
+        } catch (AccountValidationException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error communicating with Account Service", e);
+            throw new ExternalServiceException(
+                ErrorCode.ACCOUNT_SERVICE_UNAVAILABLE,
+                "Unable to validate accounts. Account service is unavailable: " + e.getMessage(),
+                e
+            );
+        }
     }
 
     /**
@@ -310,7 +333,11 @@ public class TransferServiceImpl implements TransferService {
             throw e;
         } catch (Exception e) {
             log.error("Error checking balance", e);
-            throw new ExternalServiceException("Failed to check balance: " + e.getMessage(), e);
+            throw new ExternalServiceException(
+                ErrorCode.CORE_BANKING_SERVICE_ERROR,
+                "Failed to check balance: " + e.getMessage(),
+                e
+            );
         }
     }
 

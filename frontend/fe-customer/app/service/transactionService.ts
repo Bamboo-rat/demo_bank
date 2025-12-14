@@ -34,6 +34,7 @@ export interface TransferRequest {
   description: string
   feePaymentMethod: 'SOURCE' | 'DESTINATION'
   transferType: 'INTERNAL' | 'INTERBANK'
+  phoneNumber: string
 }
 
 export interface TransferConfirm {

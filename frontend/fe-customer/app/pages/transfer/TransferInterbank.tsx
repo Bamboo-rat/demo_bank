@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import Layout from '~/component/layout/Layout'
 import { transactionService, type TransferRequest, type TransferResponse, type AccountInfo, type BankResponse } from '~/service/transactionService'
 import { accountService, type AccountSummary } from '~/service/accountService'
+import { customerService, type CustomerProfile } from '~/service/customerService'
 
 interface TransferStep {
   step: 'input' | 'confirm' | 'otp' | 'success'
@@ -13,6 +14,9 @@ const TransferInterbank = () => {
   const [currentStep, setCurrentStep] = useState<TransferStep['step']>('input')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
+  
+  // User profile for phone number
+  const [profile, setProfile] = useState<CustomerProfile | null>(null)
   
   // Form data
   const [sourceAccount, setSourceAccount] = useState<AccountSummary | null>(null)
@@ -35,7 +39,17 @@ const TransferInterbank = () => {
   React.useEffect(() => {
     loadMyAccounts()
     loadBanks()
+    loadProfile()
   }, [])
+  
+  const loadProfile = async () => {
+    try {
+      const profileData = await customerService.getMyProfile()
+      setProfile(profileData)
+    } catch (err) {
+      console.error('Failed to load profile:', err)
+    }
+  }
   
   const loadMyAccounts = async () => {
     try {
@@ -129,6 +143,10 @@ const TransferInterbank = () => {
   
   const handleConfirmTransfer = async () => {
     if (!sourceAccount || !selectedBank) return
+    if (!profile?.phoneNumber) {
+      setError('Không tìm thấy số điện thoại. Vui lòng cập nhật thông tin cá nhân.')
+      return
+    }
     
     setLoading(true)
     setError('')
@@ -141,7 +159,8 @@ const TransferInterbank = () => {
         amount: parseFloat(amount),
         description: description || 'Chuyển tiền liên ngân hàng',
         feePaymentMethod,
-        transferType: 'INTERBANK'
+        transferType: 'INTERBANK',
+        phoneNumber: profile.phoneNumber
       }
       
       const response = await transactionService.initiateTransfer(request)

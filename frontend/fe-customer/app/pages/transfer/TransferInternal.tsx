@@ -397,12 +397,7 @@ const TransferInternal = () => {
               <p className="text-gray-600 mb-4">
                 Mã OTP đã được gửi đến số điện thoại của bạn. Vui lòng nhập mã để hoàn tất giao dịch.
               </p>
-              
-              <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
-                <p className="text-sm text-blue-800">
-                  <strong>Mã giao dịch:</strong> {transactionData.transactionId}
-                </p>
-              </div>
+            
 
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Mã OTP <span className="text-red-500">*</span>

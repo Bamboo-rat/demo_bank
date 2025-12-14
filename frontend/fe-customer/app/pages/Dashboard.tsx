@@ -2,7 +2,15 @@ import React from 'react'
 import { Link } from 'react-router'
 import { customerService, type CustomerProfile } from '~/service/customerService'
 import { accountService, type AccountSummary } from '~/service/accountService'
+import { transactionService, type TransferResponse } from '~/service/transactionService'
 import Layout from '~/component/layout/Layout'
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Check,
+  Clock,
+  X
+} from 'lucide-react';
 
 const ACCENT_CONFIG = {
   purple: {
@@ -55,6 +63,8 @@ const Dashboard = () => {
     currency: string
   } | null>(null)
   const [showBalance, setShowBalance] = React.useState(false)
+  const [recentTransactions, setRecentTransactions] = React.useState<TransferResponse[]>([])
+  const [transactionsLoading, setTransactionsLoading] = React.useState(false)
 
   React.useEffect(() => {
     const fetchProfile = async () => {
@@ -157,6 +167,44 @@ const Dashboard = () => {
   const selectedAccount = React.useMemo(() => {
     return accounts.find((item) => item.accountId === selectedAccountId) ?? null
   }, [accounts, selectedAccountId])
+
+  React.useEffect(() => {
+    if (!selectedAccount) {
+      setRecentTransactions([])
+      return
+    }
+
+    let isMounted = true
+    setTransactionsLoading(true)
+
+    const fetchTransactions = async () => {
+      try {
+        const transactions = await transactionService.getTransactionHistory(
+          selectedAccount.accountNumber,
+          0,
+          5
+        )
+        if (isMounted) {
+          setRecentTransactions(transactions)
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('Failed to fetch transactions:', error)
+          setRecentTransactions([])
+        }
+      } finally {
+        if (isMounted) {
+          setTransactionsLoading(false)
+        }
+      }
+    }
+
+    fetchTransactions()
+
+    return () => {
+      isMounted = false
+    }
+  }, [selectedAccount])
 
   const handleAccountChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedAccountId(event.target.value)
@@ -308,24 +356,99 @@ const Dashboard = () => {
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white rounded-xl border border-blue-100 p-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-dark-blue">Giao dịch gần đây</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Giao dịch gần đây</h3>
               <Link
-                to="#"
-                className="text-sm text-blue-primary font-medium flex items-center gap-1"
+                to="/transactions"
+                className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors"
               >
-                Xem tất cả
-                <span className="material-icons-round text-base">chevron_right</span>
+                Xem tất cả →
               </Link>
             </div>
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="material-icons-round text-blue-primary text-2xl">receipt_long</span>
+
+            {transactionsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-gray-500 mt-3">Đang tải...</p>
               </div>
-              <p className="text-dark-blue/70 mb-2">Chưa có giao dịch nào</p>
-              <p className="text-sm text-dark-blue/50">Các giao dịch sẽ hiển thị tại đây</p>
-            </div>
+            ) : recentTransactions.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Chưa có giao dịch nào</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {/* Header đơn giản */}
+                <div className="grid grid-cols-5 gap-4 px-4 py-2 text-sm text-gray-600 font-medium border-b">
+                  <div>Thời gian</div>
+                  <div>Loại</div>
+                  <div>Tài khoản</div>
+                  <div>Số tiền</div>
+                  <div>Trạng thái</div>
+                </div>
+
+                {/* Data rows */}
+                {recentTransactions.map((txn) => {
+                  const isOutgoing = txn.sourceAccountNumber === selectedAccount?.accountNumber
+
+                  return (
+                    <div key={txn.transactionId} className="grid grid-cols-5 gap-4 px-4 py-3 text-sm border-b hover:bg-gray-50">
+                      {/* Cột Thời gian (Giữ nguyên) */}
+                      <div>
+                        <div>{new Date(txn.createdAt).toLocaleDateString('vi-VN')}</div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(txn.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+
+                      {/* Cột Loại - Đã cập nhật */}
+                      <div className="flex items-center gap-2">
+                        {/* Sử dụng ArrowUpRight cho giao dịch chuyển đi */}
+                        {isOutgoing ? (
+                          <ArrowUpRight className="text-red-600" size={18} strokeWidth={2.5} />
+                        ) : (
+                          <ArrowDownRight className="text-green-600" size={18} strokeWidth={2.5} />
+                        )}
+                        <span>{isOutgoing ? 'Chuyển đi' : 'Nhận về'}</span>
+                      </div>
+
+                      {/* Cột Tài khoản (Giữ nguyên) */}
+                      <div>
+                        <div className="font-medium truncate">
+                          {isOutgoing ? txn.destinationAccountNumber : txn.sourceAccountNumber}
+                        </div>
+                      </div>
+
+                      {/* Cột Số tiền (Giữ nguyên) */}
+                      <div className={`font-semibold ${isOutgoing ? 'text-red-600' : 'text-green-600'}`}>
+                        {isOutgoing ? '-' : '+'}{formatCurrency(txn.amount)}
+                      </div>
+
+                      {/* Cột Trạng thái - Đã cập nhật */}
+                      <div>
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${txn.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                            txn.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                          }`}>
+                          {/* Icon tương ứng với trạng thái */}
+                          {txn.status === 'COMPLETED' ? (
+                            <Check size={12} strokeWidth={3} />
+                          ) : txn.status === 'PENDING' ? (
+                            <Clock size={12} strokeWidth={2.5} />
+                          ) : (
+                            <X size={12} strokeWidth={3} />
+                          )}
+                          {/* Văn bản trạng thái */}
+                          {txn.status === 'COMPLETED' ? 'Hoàn thành' :
+                            txn.status === 'PENDING' ? 'Đang xử lý' :
+                              'Thất bại'}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -201,7 +201,7 @@ const TransactionHistory = () => {
                           {formatDate(txn.createdAt)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {getTransferTypeBadge(txn.transferType)}
+                          {getTransferTypeBadge(txn.transferType || 'INTERNAL')}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900">
                           <div>
@@ -254,90 +254,147 @@ const TransactionHistory = () => {
           )}
         </div>
 
-        {/* Transaction Detail Modal */}
-        {selectedTransaction && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold">Chi tiết giao dịch</h2>
-                  <button
-                    onClick={() => setSelectedTransaction(null)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
+        {/* Transaction Detail Modal - Simple version */}
+{selectedTransaction && (
+  <div className="fixed inset-0 z-50 overflow-y-auto">
+    {/* Background overlay */}
+    <div 
+      className="fixed inset-0 bg-black/20"
+      onClick={() => setSelectedTransaction(null)}
+    />
+    
+    {/* Modal container */}
+    <div className="flex min-h-full items-center justify-center p-4">
+      {/* Modal content */}
+      <div className="relative bg-white rounded-lg shadow-lg w-full max-w-lg">
+        {/* Header */}
+        <div className="px-6 py-4 border-b">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-gray-800">Chi tiết giao dịch</h2>
+            <button
+              onClick={() => setSelectedTransaction(null)}
+              className="p-1 hover:bg-gray-100 rounded"
+            >
+              <svg 
+                className="w-5 h-5 text-gray-500" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between py-3 border-b">
-                    <span className="text-gray-600">Mã giao dịch:</span>
-                    <span className="font-semibold">{selectedTransaction.transactionId}</span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b">
-                    <span className="text-gray-600">Loại giao dịch:</span>
-                    {getTransferTypeBadge(selectedTransaction.transferType)}
-                  </div>
-                  <div className="flex justify-between py-3 border-b">
-                    <span className="text-gray-600">Tài khoản nguồn:</span>
-                    <span className="font-semibold">{selectedTransaction.sourceAccountNumber}</span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b">
-                    <span className="text-gray-600">Tài khoản đích:</span>
-                    <span className="font-semibold">{selectedTransaction.destinationAccountNumber}</span>
-                  </div>
-                  {selectedTransaction.destinationBankName && (
-                    <div className="flex justify-between py-3 border-b">
-                      <span className="text-gray-600">Ngân hàng nhận:</span>
-                      <span className="font-semibold">{selectedTransaction.destinationBankName}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between py-3 border-b">
-                    <span className="text-gray-600">Số tiền:</span>
-                    <span className="font-semibold text-blue-600">{formatCurrency(selectedTransaction.amount)}</span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b">
-                    <span className="text-gray-600">Phí giao dịch:</span>
-                    <span className="font-semibold">{formatCurrency(selectedTransaction.fee)}</span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b">
-                    <span className="text-gray-600">Tổng tiền:</span>
-                    <span className="font-semibold text-blue-600">{formatCurrency(selectedTransaction.totalAmount)}</span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b">
-                    <span className="text-gray-600">Nội dung:</span>
-                    <span className="font-semibold text-right">{selectedTransaction.description}</span>
-                  </div>
-                  <div className="flex justify-between py-3 border-b">
-                    <span className="text-gray-600">Trạng thái:</span>
-                    {getStatusBadge(selectedTransaction.status)}
-                  </div>
-                  <div className="flex justify-between py-3 border-b">
-                    <span className="text-gray-600">Thời gian tạo:</span>
-                    <span className="font-semibold">{formatDate(selectedTransaction.createdAt)}</span>
-                  </div>
-                  {selectedTransaction.completedAt && (
-                    <div className="flex justify-between py-3 border-b">
-                      <span className="text-gray-600">Thời gian hoàn thành:</span>
-                      <span className="font-semibold">{formatDate(selectedTransaction.completedAt)}</span>
-                    </div>
-                  )}
-                </div>
+        {/* Transaction Info */}
+        <div className="px-6 py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+          {/* Basic Info */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="text-sm text-gray-500">Mã giao dịch</div>
+                <div className="font-medium text-gray-800">{selectedTransaction.transactionId}</div>
+              </div>
+              {getStatusBadge(selectedTransaction.status)}
+            </div>
 
-                <div className="mt-6 flex gap-4">
-                  <button
-                    onClick={() => setSelectedTransaction(null)}
-                    className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                  >
-                    Đóng
-                  </button>
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm text-gray-500">Loại giao dịch</div>
+                <div className="font-medium">{getTransferTypeBadge(selectedTransaction.transferType || 'INTERNAL')}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Thời gian</div>
+                <div className="font-medium">{formatDate(selectedTransaction.createdAt)}</div>
               </div>
             </div>
           </div>
-        )}
+
+          {/* Account Info */}
+          <div className="border-t pt-4">
+            <h3 className="font-medium text-gray-700 mb-3">Thông tin tài khoản</h3>
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm text-gray-500">Tài khoản nguồn</div>
+                <div className="font-medium">{selectedTransaction.sourceAccountNumber}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Tài khoản đích</div>
+                <div className="font-medium">{selectedTransaction.destinationAccountNumber}</div>
+                {selectedTransaction.destinationBankName && (
+                  <div className="text-sm text-gray-500">{selectedTransaction.destinationBankName}</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Amount Info */}
+          <div className="border-t pt-4">
+            <h3 className="font-medium text-gray-700 mb-3">Số tiền</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Số tiền:</span>
+                <span className="font-semibold text-lg text-blue-600">
+                  {formatCurrency(selectedTransaction.amount)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Phí giao dịch:</span>
+                <span className="font-medium">{formatCurrency(selectedTransaction.fee || 0)}</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t">
+                <span className="text-gray-700 font-medium">Tổng tiền:</span>
+                <span className="font-bold text-green-600">
+                  {formatCurrency((selectedTransaction.totalAmount) || (selectedTransaction.amount + (selectedTransaction.fee || 0)))}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="border-t pt-4">
+            <h3 className="font-medium text-gray-700 mb-2">Nội dung giao dịch</h3>
+            <div className="bg-gray-50 p-3 rounded border">
+              <div className="text-gray-800">{selectedTransaction.description}</div>
+            </div>
+          </div>
+
+          {/* Completed time if available */}
+          {selectedTransaction.completedAt && (
+            <div className="border-t pt-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Thời gian hoàn thành:</span>
+                <span className="font-medium">{formatDate(selectedTransaction.completedAt)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer buttons */}
+        <div className="px-6 py-4 border-t bg-gray-50">
+          <div className="flex gap-3">
+            <button
+              onClick={() => setSelectedTransaction(null)}
+              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors font-medium"
+            >
+              Đóng
+            </button>
+            <button
+              onClick={() => {
+                // Add print or share functionality here
+                console.log('Print transaction:', selectedTransaction.transactionId)
+              }}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+            >
+              In biên lai
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </Layout>
   )

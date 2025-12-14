@@ -50,10 +50,10 @@ public class OtpServiceImpl implements OtpService {
         
         // For testing: Log OTP to console
         log.info("==============================================");
-        log.info("🔐 OTP GENERATED for Transaction: {}", transactionId);
-        log.info("📱 Phone: {}", maskPhoneNumber(phoneNumber));
-        log.info("🔢 OTP Code: {}", otp);
-        log.info("⏰ Valid for: {} minutes", OTP_EXPIRATION.toMinutes());
+        log.info("OTP GENERATED for Transaction: {}", transactionId);
+        log.info("Phone: {}", maskPhoneNumber(phoneNumber));
+        log.info("OTP Code: {}", otp);
+        log.info("Valid for: {} minutes", OTP_EXPIRATION.toMinutes());
         log.info("==============================================");
         
         return otp; // Return for testing only, should not return in production
@@ -69,7 +69,7 @@ public class OtpServiceImpl implements OtpService {
         if (attemptsStr != null) {
             int attempts = Integer.parseInt(attemptsStr);
             if (attempts >= MAX_ATTEMPTS) {
-                log.warn("❌ Max OTP attempts reached for transaction: {}", transactionId);
+                log.warn("Max OTP attempts reached for transaction: {}", transactionId);
                 invalidateOtp(transactionId);
                 return false;
             }
@@ -79,7 +79,7 @@ public class OtpServiceImpl implements OtpService {
         String storedOtp = redisTemplate.opsForValue().get(redisKey);
         
         if (storedOtp == null) {
-            log.warn("❌ OTP not found or expired for transaction: {}", transactionId);
+            log.warn("OTP not found or expired for transaction: {}", transactionId);
             return false;
         }
         
@@ -89,11 +89,11 @@ public class OtpServiceImpl implements OtpService {
         if (!isValid) {
             // Increment attempts
             redisTemplate.opsForValue().increment(attemptKey);
-            log.warn("❌ Invalid OTP for transaction: {}", transactionId);
+            log.warn("Invalid OTP for transaction: {}", transactionId);
             return false;
         }
         
-        log.info("✅ OTP validated successfully for transaction: {}", transactionId);
+        log.info("OTP validated successfully for transaction: {}", transactionId);
         return true;
     }
 
@@ -105,7 +105,7 @@ public class OtpServiceImpl implements OtpService {
         redisTemplate.delete(redisKey);
         redisTemplate.delete(attemptKey);
         
-        log.info("🗑️ OTP invalidated for transaction: {}", transactionId);
+        log.info("OTP invalidated for transaction: {}", transactionId);
     }
 
     @Override

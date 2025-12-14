@@ -25,7 +25,7 @@ public interface CoreBankingClient {
      * @param accountNumber account number
      * @return balance response with available balance
      */
-    @GetMapping("/api/account/{accountNumber}/balance")
+    @GetMapping("/api/accounts/{accountNumber}/balance")
     ApiResponse<BalanceResponse> getBalance(@PathVariable("accountNumber") String accountNumber);
 
     /**

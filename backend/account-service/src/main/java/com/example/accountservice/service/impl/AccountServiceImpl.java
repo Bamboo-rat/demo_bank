@@ -1,8 +1,10 @@
 package com.example.accountservice.service.impl;
 
+import com.example.accountservice.client.CoreBankingServiceClient;
 import com.example.accountservice.dto.request.UpdateAccountRequest;
 import com.example.accountservice.dto.response.AccountInfoDTO;
 import com.example.accountservice.dto.response.AccountResponse;
+import com.example.accountservice.dto.response.BalanceResponse;
 import com.example.accountservice.entity.*;
 import com.example.accountservice.entity.enums.AccountStatus;
 import com.example.accountservice.exception.*;
@@ -10,6 +12,7 @@ import com.example.accountservice.mapper.AccountMapper;
 import com.example.accountservice.repository.AccountRepository;
 import com.example.accountservice.service.AccountService;
 
+import com.example.commonapi.dto.ApiResponse;
 import com.example.commonapi.dto.customer.CustomerBasicInfo;
 import com.example.commonapi.dubbo.CustomerQueryDubboService;
 import jakarta.transaction.Transactional;
@@ -28,6 +31,7 @@ public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
     private final AccountMapper accountMapper;
+    private final CoreBankingServiceClient coreBankingServiceClient;
     
     @DubboReference(version = "1.0.0", group = "banking-services", check = false, timeout = 5000)
     private CustomerQueryDubboService customerQueryDubboService;
@@ -39,7 +43,26 @@ public class AccountServiceImpl implements AccountService {
         Account account = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountNumber));
 
-        return accountMapper.toResponse(account);
+        AccountResponse response = accountMapper.toResponse(account);
+        
+        // Fetch balance from core-banking-service
+        try {
+            ApiResponse<BalanceResponse> balanceApiResponse = coreBankingServiceClient.getBalance(accountNumber);
+            if (balanceApiResponse != null && balanceApiResponse.getData() != null) {
+                BalanceResponse balanceData = balanceApiResponse.getData();
+                response.setBalance(balanceData.getBalance());
+                response.setAvailableBalance(balanceData.getAvailableBalance());
+                log.info("Balance fetched successfully for {}: balance={}, availableBalance={}", 
+                        accountNumber, balanceData.getBalance(), balanceData.getAvailableBalance());
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch balance from core-banking for {}: {}", accountNumber, e.getMessage());
+            // Continue without balance - service degradation instead of failure
+            response.setBalance(BigDecimal.ZERO);
+            response.setAvailableBalance(BigDecimal.ZERO);
+        }
+        
+        return response;
     }
 
     @Override
@@ -53,7 +76,25 @@ public class AccountServiceImpl implements AccountService {
         }
 
         return accounts.stream()
-                .map(accountMapper::toResponse)
+                .map(account -> {
+                    AccountResponse response = accountMapper.toResponse(account);
+                    
+                    // Fetch balance from core-banking-service for each account
+                    try {
+                        ApiResponse<BalanceResponse> balanceApiResponse = coreBankingServiceClient.getBalance(account.getAccountNumber());
+                        if (balanceApiResponse != null && balanceApiResponse.getData() != null) {
+                            BalanceResponse balanceData = balanceApiResponse.getData();
+                            response.setBalance(balanceData.getBalance());
+                            response.setAvailableBalance(balanceData.getAvailableBalance());
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to fetch balance from core-banking for {}: {}", account.getAccountNumber(), e.getMessage());
+                        response.setBalance(BigDecimal.ZERO);
+                        response.setAvailableBalance(BigDecimal.ZERO);
+                    }
+                    
+                    return response;
+                })
                 .toList();
     }
 

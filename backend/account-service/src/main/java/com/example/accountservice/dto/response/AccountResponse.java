@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -33,4 +34,8 @@ public class AccountResponse {
     
     // Core banking reference
     private String cifNumber; // Reference to CIF in core-banking
+    
+    // Balance info (from core-banking-service via Feign)
+    private BigDecimal balance;
+    private BigDecimal availableBalance;
 }

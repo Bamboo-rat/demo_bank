@@ -18,6 +18,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/cif/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers("/api/accounts/**").permitAll()
                 .anyRequest().authenticated()
             );
 

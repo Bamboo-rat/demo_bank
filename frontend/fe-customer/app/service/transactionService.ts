@@ -1,5 +1,5 @@
 import { isAxiosError } from 'axios'
-import axiosTransaction from '~/config/axiosTransactione'
+import axiosTransaction, { axiosTransactionPublic } from '~/config/axiosTransactione'
 
 const normalizeError = (error: unknown) => {
   if (isAxiosError(error)) {
@@ -67,7 +67,7 @@ export interface AccountInfo {
 export const transactionService = {
   async getAllBanks(): Promise<BankResponse[]> {
     try {
-      const { data } = await axiosTransaction.get<ApiResponse<BankResponse[]>>('/banks')
+      const { data } = await axiosTransactionPublic.get<ApiResponse<BankResponse[]>>('/banks')
       
       if (!data?.success || !data?.data) {
         throw new Error(data?.message ?? 'Không thể lấy danh sách ngân hàng')
@@ -81,7 +81,7 @@ export const transactionService = {
 
   async searchBanks(query: string): Promise<BankResponse[]> {
     try {
-      const { data } = await axiosTransaction.get<ApiResponse<BankResponse[]>>(
+      const { data } = await axiosTransactionPublic.get<ApiResponse<BankResponse[]>>(
         `/banks/search?q=${encodeURIComponent(query)}`
       )
       
@@ -100,7 +100,7 @@ export const transactionService = {
       const params = bankCode ? `?bankCode=${encodeURIComponent(bankCode)}` : ''
       const url = `/accounts/info/${accountNumber}${params}`
       
-      const { data } = await axiosTransaction.get<ApiResponse<AccountInfo>>(url)
+      const { data } = await axiosTransactionPublic.get<ApiResponse<AccountInfo>>(url)
       
       if (!data?.success || !data?.data) {
         throw new Error(data?.message ?? 'Không tìm thấy thông tin tài khoản')

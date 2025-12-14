@@ -384,36 +384,7 @@ const TransferInterbank = () => {
                   maxLength={200}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
-              </div>
-
-              {/* Fee Payment Method */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Người chịu phí
-                </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="SOURCE"
-                      checked={feePaymentMethod === 'SOURCE'}
-                      onChange={(e) => setFeePaymentMethod(e.target.value as 'SOURCE')}
-                      className="mr-2"
-                    />
-                    Người gửi
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="DESTINATION"
-                      checked={feePaymentMethod === 'DESTINATION'}
-                      onChange={(e) => setFeePaymentMethod(e.target.value as 'DESTINATION')}
-                      className="mr-2"
-                    />
-                    Người nhận
-                  </label>
-                </div>
-                <p className="text-sm text-gray-500 mt-1">Phí chuyển liên ngân hàng: 5,000 VND</p>
+                <p className="text-sm text-gray-500 mt-1">Phí chuyển liên ngân hàng: 0 VND (Miễn phí)</p>
               </div>
 
               {/* Actions */}
@@ -466,19 +437,15 @@ const TransferInterbank = () => {
               </div>
               <div className="flex justify-between py-2 border-b">
                 <span className="text-gray-600">Phí giao dịch:</span>
-                <span className="font-semibold">5,000 VND</span>
+                <span className="font-semibold">0 VND (Miễn phí)</span>
               </div>
               <div className="flex justify-between py-2 border-b font-bold text-lg">
                 <span className="text-gray-900">Tổng tiền:</span>
-                <span className="text-blue-600">{formatCurrency(parseFloat(amount) + 5000)}</span>
+                <span className="text-blue-600">{formatCurrency(parseFloat(amount))}</span>
               </div>
               <div className="flex justify-between py-2 border-b">
                 <span className="text-gray-600">Nội dung:</span>
                 <span className="font-semibold">{description || 'Chuyển tiền liên ngân hàng'}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-gray-600">Người chịu phí:</span>
-                <span className="font-semibold">{feePaymentMethod === 'SOURCE' ? 'Người gửi' : 'Người nhận'}</span>
               </div>
             </div>
 

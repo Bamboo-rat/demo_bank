@@ -251,12 +251,9 @@ const TransferInternal = () => {
                 </div>
                 
                 {destinationAccountInfo && (
-                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded">
-                    <p className="text-sm text-green-800">
-                      <strong>Chủ tài khoản:</strong> {destinationAccountInfo.accountHolderName}
-                    </p>
-                    <p className="text-sm text-green-800">
-                      <strong>Ngân hàng:</strong> KienlongBank
+                  <div className="mt-2 p-3 bg-green-50 border border-green-100 rounded">
+                    <p className="text-md text-black">
+                      {destinationAccountInfo.accountHolderName}
                     </p>
                   </div>
                 )}
@@ -295,35 +292,6 @@ const TransferInternal = () => {
                   maxLength={200}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
-              </div>
-
-              {/* Fee Payment Method */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Người chịu phí
-                </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="SOURCE"
-                      checked={feePaymentMethod === 'SOURCE'}
-                      onChange={(e) => setFeePaymentMethod(e.target.value as 'SOURCE')}
-                      className="mr-2"
-                    />
-                    Người gửi
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="DESTINATION"
-                      checked={feePaymentMethod === 'DESTINATION'}
-                      onChange={(e) => setFeePaymentMethod(e.target.value as 'DESTINATION')}
-                      className="mr-2"
-                    />
-                    Người nhận
-                  </label>
-                </div>
               </div>
 
               {/* Actions */}
@@ -380,10 +348,6 @@ const TransferInternal = () => {
               <div className="flex justify-between py-2 border-b">
                 <span className="text-gray-600">Nội dung:</span>
                 <span className="font-semibold">{description || 'Chuyển tiền nội bộ'}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-gray-600">Người chịu phí:</span>
-                <span className="font-semibold">{feePaymentMethod === 'SOURCE' ? 'Người gửi' : 'Người nhận'}</span>
               </div>
             </div>
 

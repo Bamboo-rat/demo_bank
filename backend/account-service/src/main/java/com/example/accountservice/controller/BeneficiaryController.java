@@ -7,7 +7,6 @@ import com.example.accountservice.service.BeneficiaryService;
 import com.example.commonapi.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,9 +41,9 @@ public class BeneficiaryController {
         description = "Thêm người thụ hưởng mới vào danh bạ của khách hàng."
     )
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "201", description = "Tạo người thụ hưởng thành công"),
-        @SwaggerApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
-        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Tạo người thụ hưởng thành công"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa xác thực")
     })
     @SecurityRequirement(name = "bearer-jwt")
     @PostMapping
@@ -69,10 +68,10 @@ public class BeneficiaryController {
         description = "Cập nhật nickname, số tài khoản hoặc thông tin khác của người thụ hưởng."
     )
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Cập nhật thành công"),
-        @SwaggerApiResponse(responseCode = "404", description = "Không tìm thấy người thụ hưởng"),
-        @SwaggerApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
-        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Cập nhật thành công"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Không tìm thấy người thụ hưởng"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa xác thực")
     })
     @SecurityRequirement(name = "bearer-jwt")
     @PutMapping("/{beneficiaryId}")
@@ -98,9 +97,9 @@ public class BeneficiaryController {
         description = "Xóa người thụ hưởng khỏi danh bạ."
     )
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Xóa thành công"),
-        @SwaggerApiResponse(responseCode = "404", description = "Không tìm thấy người thụ hưởng"),
-        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Xóa thành công"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Không tìm thấy người thụ hưởng"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa xác thực")
     })
     @SecurityRequirement(name = "bearer-jwt")
     @DeleteMapping("/{beneficiaryId}")
@@ -121,9 +120,9 @@ public class BeneficiaryController {
         description = "Xem chi tiết một người thụ hưởng cụ thể."
     )
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Lấy thông tin thành công"),
-        @SwaggerApiResponse(responseCode = "404", description = "Không tìm thấy người thụ hưởng"),
-        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lấy thông tin thành công"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Không tìm thấy người thụ hưởng"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa xác thực")
     })
     @SecurityRequirement(name = "bearer-jwt")
     @GetMapping("/{beneficiaryId}")
@@ -144,8 +143,8 @@ public class BeneficiaryController {
         description = "Lấy danh sách tất cả người thụ hưởng của khách hàng (không phân trang)."
     )
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Lấy danh sách thành công"),
-        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lấy danh sách thành công"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa xác thực")
     })
     @SecurityRequirement(name = "bearer-jwt")
     @GetMapping
@@ -164,8 +163,8 @@ public class BeneficiaryController {
         description = "Lấy danh sách người thụ hưởng với phân trang. Mặc định sắp xếp theo ngày chuyển gần nhất."
     )
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Lấy danh sách thành công"),
-        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lấy danh sách thành công"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa xác thực")
     })
     @SecurityRequirement(name = "bearer-jwt")
     @GetMapping("/paged")
@@ -186,8 +185,8 @@ public class BeneficiaryController {
         description = "Tìm kiếm người thụ hưởng theo tên hoặc nickname."
     )
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Tìm kiếm thành công"),
-        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Tìm kiếm thành công"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa xác thực")
     })
     @SecurityRequirement(name = "bearer-jwt")
     @GetMapping("/search")
@@ -208,8 +207,8 @@ public class BeneficiaryController {
         description = "Lấy top N người thụ hưởng có số lần chuyển tiền nhiều nhất."
     )
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Lấy danh sách thành công"),
-        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lấy danh sách thành công"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa xác thực")
     })
     @SecurityRequirement(name = "bearer-jwt")
     @GetMapping("/most-used")

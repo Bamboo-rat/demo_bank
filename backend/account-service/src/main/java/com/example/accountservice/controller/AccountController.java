@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse as SwaggerApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -63,10 +62,10 @@ public class AccountController {
         description = "Xem thông tin chi tiết tài khoản theo số tài khoản. Chỉ trả về tài khoản thuộc về khách hàng đã xác thực."
     )
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Lấy thông tin tài khoản thành công"),
-        @SwaggerApiResponse(responseCode = "403", description = "Không có quyền truy cập tài khoản này"),
-        @SwaggerApiResponse(responseCode = "404", description = "Không tìm thấy tài khoản"),
-        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lấy thông tin tài khoản thành công"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Không có quyền truy cập tài khoản này"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Không tìm thấy tài khoản"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa xác thực")
     })
     @SecurityRequirement(name = "bearer-jwt")
     @GetMapping("/{accountNumber}")
@@ -103,8 +102,8 @@ public class AccountController {
         description = "Lấy tất cả tài khoản thuộc về khách hàng đã đăng nhập."
     )
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Lấy danh sách tài khoản thành công"),
-        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lấy danh sách tài khoản thành công"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa xác thực")
     })
     @SecurityRequirement(name = "bearer-jwt")
     @GetMapping("/my-accounts")
@@ -142,10 +141,10 @@ public class AccountController {
         description = "Kiểm tra xem tài khoản có đang ở trạng thái ACTIVE hay không."
     )
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Kiểm tra trạng thái thành công"),
-        @SwaggerApiResponse(responseCode = "403", description = "Không có quyền truy cập tài khoản này"),
-        @SwaggerApiResponse(responseCode = "404", description = "Không tìm thấy tài khoản"),
-        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Kiểm tra trạng thái thành công"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Không có quyền truy cập tài khoản này"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Không tìm thấy tài khoản"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa xác thực")
     })
     @SecurityRequirement(name = "bearer-jwt")
     @GetMapping("/{accountNumber}/status")
@@ -192,11 +191,11 @@ public class AccountController {
         description = "Cập nhật metadata của tài khoản (credit limit cho tài khoản tín dụng, lãi suất/kỳ hạn cho tài khoản tiết kiệm). Chỉ cập nhật được tài khoản của chính mình."
     )
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Cập nhật tài khoản thành công"),
-        @SwaggerApiResponse(responseCode = "403", description = "Không có quyền cập nhật tài khoản này"),
-        @SwaggerApiResponse(responseCode = "404", description = "Không tìm thấy tài khoản"),
-        @SwaggerApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
-        @SwaggerApiResponse(responseCode = "401", description = "Chưa xác thực")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Cập nhật tài khoản thành công"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Không có quyền cập nhật tài khoản này"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Không tìm thấy tài khoản"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Chưa xác thực")
     })
     @SecurityRequirement(name = "bearer-jwt")
     @PatchMapping("/{accountNumber}")
@@ -263,8 +262,8 @@ public class AccountController {
         description = "API nội bộ dùng để lấy thông tin tài khoản cho các service khác (không yêu cầu authentication)."
     )
     @ApiResponses(value = {
-        @SwaggerApiResponse(responseCode = "200", description = "Lấy thông tin tài khoản thành công"),
-        @SwaggerApiResponse(responseCode = "404", description = "Không tìm thấy tài khoản")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Lấy thông tin tài khoản thành công"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Không tìm thấy tài khoản")
     })
     @GetMapping("/internal/info/{accountNumber}")
     public ResponseEntity<ApiResponse<AccountInfoDTO>> getAccountInfoByNumber(

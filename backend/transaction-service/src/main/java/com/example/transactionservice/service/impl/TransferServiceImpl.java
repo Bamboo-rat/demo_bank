@@ -13,6 +13,8 @@ import com.example.transactionservice.dubbo.consumer.AccountServiceClient;
 import com.example.transactionservice.entity.Transaction;
 import com.example.transactionservice.entity.enums.TransactionStatus;
 import com.example.transactionservice.entity.enums.TransactionType;
+import com.example.transactionservice.events.TransactionNotificationEvent;
+import com.example.transactionservice.events.producer.TransactionNotificationProducer;
 import com.example.transactionservice.exception.*;
 import com.example.transactionservice.mapper.TransferMapper;
 import com.example.transactionservice.repository.TransactionRepository;
@@ -41,6 +43,7 @@ public class TransferServiceImpl implements TransferService {
     private final CoreBankingClient coreBankingClient;
     private final AccountServiceClient accountServiceClient;
     private final TransferMapper transferMapper;
+    private final TransactionNotificationProducer notificationProducer;
 
     @Override
     @Transactional
@@ -66,7 +69,7 @@ public class TransferServiceImpl implements TransferService {
             .status(TransactionStatus.PENDING)
             .description(request.getDescription())
             .referenceNumber(generateReferenceNumber())
-            .createdBy(request.getSourceAccountNumber()) // TODO: Get from SecurityContext
+            .createdBy(getAuthenticatedUserId())
             .build();
 
         transaction = transactionRepository.save(transaction);
@@ -74,14 +77,6 @@ public class TransferServiceImpl implements TransferService {
 
         // 4. Generate and send OTP
         String otp = otpService.generateOtp(transaction.getTransactionId(), request.getPhoneNumber());
-
-        // TODO: [KAFKA] Send notification event
-        // kafkaTemplate.send("notification-topic", NotificationEvent.builder()
-        //     .type(NotificationType.TRANSFER_INITIATED)
-        //     .transactionId(transaction.getTransactionId())
-        //     .accountNumber(request.getSourceAccountNumber())
-        //     .amount(request.getAmount())
-        //     .build());
 
         return transferMapper.toOtpResponseDTO(
             transaction,
@@ -129,12 +124,14 @@ public class TransferServiceImpl implements TransferService {
             transactionRepository.save(transaction);
             log.info("Transfer completed successfully");
 
-            // TODO: [KAFKA] Send success notification
-            // kafkaTemplate.send("notification-topic", NotificationEvent.builder()
-            //     .type(NotificationType.TRANSFER_COMPLETED)
-            //     .transactionId(transaction.getTransactionId())
-            //     .status("SUCCESS")
-            //     .build());
+            // 8. Send Kafka notification event
+            try {
+                sendTransactionNotification(transaction);
+            } catch (Exception kafkaException) {
+                // Log error nhưng không fail transaction
+                log.error("Failed to send Kafka notification for transaction: {}", 
+                    transaction.getTransactionId(), kafkaException);
+            }
 
             return transferMapper.toResponseDTOWithMessage(transaction, "Transfer completed successfully");
 
@@ -145,12 +142,12 @@ public class TransferServiceImpl implements TransferService {
             transaction.setStatus(TransactionStatus.FAILED);
             transactionRepository.save(transaction);
 
-            // TODO: [KAFKA] Send failure notification
-            // kafkaTemplate.send("notification-topic", NotificationEvent.builder()
-            //     .type(NotificationType.TRANSFER_FAILED)
-            //     .transactionId(transaction.getTransactionId())
-            //     .reason(e.getMessage())
-            //     .build());
+            // 9. Send failure notification (optional - không block exception)
+            try {
+                sendFailureNotification(transaction, e.getMessage());
+            } catch (Exception notificationException) {
+                log.error("Failed to send failure notification", notificationException);
+            }
 
             throw new TransferFailedException("Transfer failed: " + e.getMessage(), e);
         }
@@ -356,6 +353,132 @@ public class TransferServiceImpl implements TransferService {
             return "****";
         }
         return "*".repeat(phoneNumber.length() - 4) + phoneNumber.substring(phoneNumber.length() - 4);
+    }
+
+    /**
+     * Gửi notification event qua Kafka khi transfer thành công
+     */
+    private void sendTransactionNotification(Transaction transaction) {
+        try {
+            // Lấy thông tin accounts
+            AccountInfoDTO sourceAccountInfo = accountServiceClient.getAccountInfo(transaction.getSourceAccountId());
+            AccountInfoDTO destAccountInfo = accountServiceClient.getAccountInfo(transaction.getDestinationAccountId());
+            
+            // Lấy balance sau giao dịch
+            ApiResponse<BalanceResponse> sourceBalanceResponse = coreBankingClient.getBalance(transaction.getSourceAccountId());
+            ApiResponse<BalanceResponse> destBalanceResponse = coreBankingClient.getBalance(transaction.getDestinationAccountId());
+            
+            // Build notification event
+            TransactionNotificationEvent event = TransactionNotificationEvent.builder()
+                    .transactionId(transaction.getTransactionId())
+                    .transactionReference(transaction.getReferenceNumber())
+                    .transactionType(transaction.getType().name())
+                    
+                    // Sender info
+                    .senderAccountNumber(transaction.getSourceAccountId())
+                    .senderCustomerId(sourceAccountInfo != null ? sourceAccountInfo.getAccountHolderName() : null)
+                    .senderName(sourceAccountInfo != null ? sourceAccountInfo.getAccountHolderName() : null)
+                    .senderEmail(null) // TODO: Get from customer service if needed
+                    
+                    // Receiver info
+                    .receiverAccountNumber(transaction.getDestinationAccountId())
+                    .receiverCustomerId(destAccountInfo != null ? destAccountInfo.getAccountHolderName() : null)
+                    .receiverName(destAccountInfo != null ? destAccountInfo.getAccountHolderName() : null)
+                    .receiverEmail(null) // TODO: Get from customer service if needed
+                    .receiverBankCode(destAccountInfo != null ? destAccountInfo.getBankCode() : null)
+                    .receiverBankName(destAccountInfo != null ? destAccountInfo.getBankName() : null)
+                    
+                    // Transaction details
+                    .amount(transaction.getAmount())
+                    .currency("VND")
+                    .description(transaction.getDescription())
+                    .senderBalanceAfter(sourceBalanceResponse.isSuccess() && sourceBalanceResponse.getData() != null 
+                            ? sourceBalanceResponse.getData().getBalance() : null)
+                    .receiverBalanceAfter(destBalanceResponse.isSuccess() && destBalanceResponse.getData() != null 
+                            ? destBalanceResponse.getData().getBalance() : null)
+                    
+                    // Metadata
+                    .transactionTime(transaction.getTransactionDate() != null ? transaction.getTransactionDate() : LocalDateTime.now())
+                    .status("SUCCESS")
+                    .fee(calculateTransferFee(transaction.getAmount(), destAccountInfo))
+                    .build();
+            
+            // Send to Kafka asynchronously
+            notificationProducer.sendTransactionNotification(event);
+            log.info("Transaction notification event sent to Kafka for transaction: {}", transaction.getTransactionId());
+            
+        } catch (Exception e) {
+            log.error("Error creating transaction notification event", e);
+            throw e;
+        }
+    }
+
+    /**
+     * Gửi failure notification khi transfer thất bại
+     */
+    private void sendFailureNotification(Transaction transaction, String errorMessage) {
+        try {
+            AccountInfoDTO sourceAccountInfo = accountServiceClient.getAccountInfo(transaction.getSourceAccountId());
+            
+            TransactionNotificationEvent event = TransactionNotificationEvent.builder()
+                    .transactionId(transaction.getTransactionId())
+                    .transactionReference(transaction.getReferenceNumber())
+                    .transactionType(transaction.getType().name())
+                    .senderAccountNumber(transaction.getSourceAccountId())
+                    .senderName(sourceAccountInfo != null ? sourceAccountInfo.getAccountHolderName() : null)
+                    .receiverAccountNumber(transaction.getDestinationAccountId())
+                    .amount(transaction.getAmount())
+                    .currency("VND")
+                    .description(transaction.getDescription() + " - FAILED: " + errorMessage)
+                    .transactionTime(LocalDateTime.now())
+                    .status("FAILED")
+                    .fee(BigDecimal.ZERO)
+                    .build();
+            
+            notificationProducer.sendTransactionNotification(event);
+            log.info("Failure notification sent for transaction: {}", transaction.getTransactionId());
+        } catch (Exception e) {
+            log.error("Error sending failure notification", e);
+        }
+    }
+
+    /**
+     * Lấy authenticated user ID từ SecurityContext
+     */
+    private String getAuthenticatedUserId() {
+        try {
+            org.springframework.security.core.Authentication authentication = 
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            
+            if (authentication != null && authentication.isAuthenticated()) {
+                // Nếu dùng JWT, có thể lấy từ principal
+                if (authentication.getPrincipal() instanceof org.springframework.security.oauth2.jwt.Jwt jwt) {
+                    return jwt.getSubject(); // hoặc jwt.getClaim("preferred_username")
+                }
+                return authentication.getName();
+            }
+            return "SYSTEM"; // Fallback
+        } catch (Exception e) {
+            log.warn("Failed to get authenticated user, using SYSTEM", e);
+            return "SYSTEM";
+        }
+    }
+
+    /**
+     * Tính phí giao dịch
+     * Logic: 
+     * - Chuyển nội bộ (cùng ngân hàng): FREE
+     * - Chuyển ngoại tệ: 0.5% (min 10,000 VND)
+     * - Chuyển liên ngân hàng: 5,500 VND flat fee
+     */
+    private BigDecimal calculateTransferFee(BigDecimal amount, AccountInfoDTO destAccount) {
+        // Chuyển nội bộ - FREE
+        if (destAccount != null && (destAccount.getBankCode() == null || destAccount.getBankCode().isBlank())) {
+            return BigDecimal.ZERO;
+        }
+        
+        // Chuyển liên ngân hàng - flat fee 5,500 VND
+        return new BigDecimal("5500.00");
     }
 
 

@@ -33,9 +33,11 @@ public class Transaction {
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private TransactionType type;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private TransactionStatus status;
 
     private String description;

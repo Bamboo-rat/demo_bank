@@ -13,7 +13,7 @@ import com.example.transactionservice.dubbo.consumer.AccountServiceClient;
 import com.example.transactionservice.entity.Transaction;
 import com.example.transactionservice.entity.enums.TransactionStatus;
 import com.example.transactionservice.entity.enums.TransactionType;
-import com.example.transactionservice.events.TransactionNotificationEvent;
+import com.example.commonapi.dto.notification.TransactionNotificationEvent;
 import com.example.transactionservice.events.producer.TransactionNotificationProducer;
 import com.example.transactionservice.exception.*;
 import com.example.transactionservice.mapper.TransferMapper;

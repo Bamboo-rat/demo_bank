@@ -1,5 +1,6 @@
 package com.example.notificationserrvice.events;
 
+import com.example.commonapi.dto.notification.TransactionNotificationEvent;
 import com.example.notificationserrvice.service.EmailService;
 import com.example.notificationserrvice.service.WebSocketService;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package com.example.transactionservice.events;
+package com.example.commonapi.dto.notification;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

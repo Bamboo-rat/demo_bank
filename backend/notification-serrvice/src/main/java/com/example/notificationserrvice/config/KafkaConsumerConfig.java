@@ -14,10 +14,6 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Kafka Consumer Configuration cho Notification Service
- * Lắng nghe transaction notification events
- */
 @EnableKafka
 @Configuration
 public class KafkaConsumerConfig {
@@ -39,7 +35,7 @@ public class KafkaConsumerConfig {
         // JSON Deserializer configuration
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
-        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.example.notificationserrvice.events.TransactionNotificationEvent");
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.example.commonapi.dto.notification.TransactionNotificationEvent");
         
         // Consumer configuration
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");

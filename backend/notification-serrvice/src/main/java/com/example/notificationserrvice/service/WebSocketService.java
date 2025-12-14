@@ -1,6 +1,6 @@
 package com.example.notificationserrvice.service;
 
-import com.example.notificationserrvice.events.TransactionNotificationEvent;
+import com.example.commonapi.dto.notification.TransactionNotificationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

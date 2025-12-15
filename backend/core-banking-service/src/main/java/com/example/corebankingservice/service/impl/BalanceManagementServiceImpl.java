@@ -39,7 +39,8 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
                 request.getAccountNumber(), request.getAmount(), request.getTransactionReference());
 
         // Check for idempotency: has this transaction already been processed
-        List<BalanceAuditLog> existingAudits = auditLogRepository.findByTransactionReference(request.getTransactionReference());
+        List<BalanceAuditLog> existingAudits = auditLogRepository.findByTransactionReferenceAndOperationType(
+                request.getTransactionReference(), "DEBIT");
         if (!existingAudits.isEmpty()) {
             BalanceAuditLog existingAudit = existingAudits.get(0);
             log.warn("DEBIT operation already processed: ref={}, audit_id={}", 
@@ -128,7 +129,9 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
                 request.getAccountNumber(), request.getAmount(), request.getTransactionReference());
 
         // Check for idempotency: has this transaction already been processed?
-        List<BalanceAuditLog> existingAudits = auditLogRepository.findByTransactionReference(request.getTransactionReference());
+        // IMPORTANT: Must check BOTH transactionReference AND operationType to avoid returning wrong operation result
+        List<BalanceAuditLog> existingAudits = auditLogRepository.findByTransactionReferenceAndOperationType(
+                request.getTransactionReference(), "CREDIT");
         if (!existingAudits.isEmpty()) {
             BalanceAuditLog existingAudit = existingAudits.get(0);
             log.warn("CREDIT operation already processed: ref={}, audit_id={}", 

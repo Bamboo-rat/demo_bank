@@ -30,6 +30,11 @@ public interface BalanceAuditLogRepository extends JpaRepository<BalanceAuditLog
     List<BalanceAuditLog> findByTransactionReference(String transactionReference);
 
     /**
+     * Find by transaction reference and operation type
+     */
+    List<BalanceAuditLog> findByTransactionReferenceAndOperationType(String transactionReference, String operationType);
+
+    /**
      * Find audit logs within date range
      */
     @Query("SELECT b FROM BalanceAuditLog b WHERE b.accountNumber = :accountNumber " +

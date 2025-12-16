@@ -1,34 +1,30 @@
-package com.example.notificationserrvice.service;
+package com.example.notificationserrvice.service.impl;
 
 import com.example.commonapi.dto.notification.TransactionNotificationEvent;
+import com.example.notificationserrvice.service.WebSocketNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.text.NumberFormat;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * Service gửi WebSocket notifications
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class WebSocketService {
+public class WebSocketNotificationServiceImpl implements WebSocketNotificationService {
 
     private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${notification.websocket.enabled:true}")
     private boolean websocketEnabled;
 
-    /**
-     * Gửi notification qua WebSocket cho người gửi và người nhận
-     */
+    @Override
     public void sendTransactionNotification(TransactionNotificationEvent event) {
         if (!websocketEnabled) {
             log.info("WebSocket notification is disabled");
@@ -118,10 +114,13 @@ public class WebSocketService {
                 event.getReceiverCustomerId(), event.getTransactionReference());
     }
 
-    /**
-     * Gửi broadcast notification đến tất cả users (optional)
-     */
+    @Override
     public void sendBroadcastNotification(String message) {
+        if (!websocketEnabled) {
+            log.info("WebSocket notification is disabled");
+            return;
+        }
+        
         Map<String, Object> notification = new HashMap<>();
         notification.put("type", "BROADCAST");
         notification.put("message", message);
@@ -131,10 +130,10 @@ public class WebSocketService {
         log.info("Broadcast notification sent: {}", message);
     }
 
-    /**
-     * Format currency
-     */
-    private String formatCurrency(java.math.BigDecimal amount) {
+    private String formatCurrency(BigDecimal amount) {
+        if (amount == null) {
+            return "0 VND";
+        }
         NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
         return formatter.format(amount);
     }

@@ -1,10 +1,11 @@
 package com.example.notificationserrvice.events;
 
 import com.example.commonapi.dto.notification.TransactionNotificationEvent;
-import com.example.notificationserrvice.service.EmailService;
-import com.example.notificationserrvice.service.WebSocketService;
+import com.example.notificationserrvice.service.EmailNotificationService;
+import com.example.notificationserrvice.service.WebSocketNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -12,17 +13,13 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
-/**
- * Kafka Consumer để lắng nghe transaction notification events
- * Khi nhận được event, sẽ gửi thông báo qua Email và WebSocket
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class TransactionNotificationConsumer {
 
-    private final EmailService emailService;
-    private final WebSocketService webSocketService;
+    private final EmailNotificationService emailNotificationService;
+    private final WebSocketNotificationService webSocketNotificationService;
 
     /**
      * Lắng nghe transaction notification events từ Kafka
@@ -82,7 +79,7 @@ public class TransactionNotificationConsumer {
 
         // 1. Gửi WebSocket notification (real-time)
         try {
-            webSocketService.sendTransactionNotification(event);
+            webSocketNotificationService.sendTransactionNotification(event);
         } catch (Exception e) {
             log.error("Failed to send WebSocket notification", e);
             // Continue with email notification even if WebSocket fails
@@ -90,7 +87,7 @@ public class TransactionNotificationConsumer {
 
         // 2. Gửi Email notification
         try {
-            emailService.sendTransactionSuccessEmail(event);
+            emailNotificationService.sendTransactionSuccessEmail(event);
         } catch (Exception e) {
             log.error("Failed to send Email notification", e);
         }
@@ -101,7 +98,7 @@ public class TransactionNotificationConsumer {
     /**
      * Error handler cho Kafka listener
      */
-    @org.springframework.kafka.annotation.KafkaHandler(isDefault = true)
+    @KafkaHandler(isDefault = true)
     public void handleUnknownMessage(Object message) {
         log.warn("Received unknown message type: {}", message.getClass().getName());
     }

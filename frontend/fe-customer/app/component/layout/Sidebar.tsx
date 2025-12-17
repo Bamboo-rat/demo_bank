@@ -64,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
 
       <button
         onClick={toggleSidebar}
-        className="absolute -right-4 top-8 w-8 h-8 bg-blue-500 border-2 border-white rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-all duration-200 z-50"
+        className="absolute -right-4 top-8 w-8 h-8 bg-blue-500 border-2 border-white rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-all duration-200 z-[60]"
       >
         <span className={`material-icons-round text-white text-base transition-transform duration-300 ${
           isCollapsed ? 'rotate-180' : ''

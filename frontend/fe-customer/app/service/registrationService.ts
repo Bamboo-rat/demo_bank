@@ -9,7 +9,7 @@ import type {
   RegistrationCompletePayload,
   CustomerResponse,
   AddressRequest
-} from '../../type/types'
+} from '../type/types'
 
 interface EkycVerificationRequest {
   password: string
@@ -97,4 +97,4 @@ export type {
   RegistrationIdentityPayload,
   RegistrationCompletePayload,
   CustomerResponse
-} from '../../type/types'
+} from '../type/types'

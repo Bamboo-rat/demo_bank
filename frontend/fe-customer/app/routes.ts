@@ -13,5 +13,6 @@ export default [
     route("accounts/list", "routes/accountList.tsx"),
     route("transactions", "routes/transactions.tsx"),
     // route("accounts/detail/:accountNumber", "routes/accountDetail.tsx"),
+    route("notifications", "routes/notification.tsx")
 
 ] satisfies RouteConfig;

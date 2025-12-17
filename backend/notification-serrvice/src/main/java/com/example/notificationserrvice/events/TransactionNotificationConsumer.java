@@ -2,6 +2,7 @@ package com.example.notificationserrvice.events;
 
 import com.example.commonapi.dto.notification.TransactionNotificationEvent;
 import com.example.notificationserrvice.service.EmailNotificationService;
+import com.example.notificationserrvice.service.NotificationService;
 import com.example.notificationserrvice.service.WebSocketNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ public class TransactionNotificationConsumer {
 
     private final EmailNotificationService emailNotificationService;
     private final WebSocketNotificationService webSocketNotificationService;
+    private final NotificationService notificationService;
 
     /**
      * Lắng nghe transaction notification events từ Kafka
@@ -63,21 +65,28 @@ public class TransactionNotificationConsumer {
         } catch (Exception e) {
             log.error("Error processing transaction notification - Transaction: {}, Error: {}", 
                     event.getTransactionReference(), e.getMessage(), e);
-            
-            // Không acknowledge để Kafka retry (hoặc có thể gửi vào DLQ)
-            // Tùy vào retry policy và error handling strategy
-            // Ở đây ta acknowledge để tránh block consumer
             acknowledgment.acknowledge();
         }
     }
 
     /**
-     * Xử lý notification: gửi email và WebSocket
+     * Xử lý notification: lưu vào database, gửi email và WebSocket
      */
     private void processNotification(TransactionNotificationEvent event) {
         log.info("Processing notification for transaction: {}", event.getTransactionReference());
 
-        // 1. Gửi WebSocket notification (real-time)
+        // 1. Lưu notification vào database
+        try {
+            notificationService.saveTransactionNotifications(event);
+            log.info("Successfully saved notifications to database for transaction: {}", 
+                    event.getTransactionReference());
+        } catch (Exception e) {
+            log.error("Failed to save notifications to database for transaction: {}, Error: {}", 
+                    event.getTransactionReference(), e.getMessage(), e);
+            // Continue with other notification channels even if database save fails
+        }
+
+        // 2. Gửi WebSocket notification (real-time)
         try {
             webSocketNotificationService.sendTransactionNotification(event);
         } catch (Exception e) {
@@ -85,7 +94,7 @@ public class TransactionNotificationConsumer {
             // Continue with email notification even if WebSocket fails
         }
 
-        // 2. Gửi Email notification
+        // 3. Gửi Email notification
         try {
             emailNotificationService.sendTransactionSuccessEmail(event);
         } catch (Exception e) {

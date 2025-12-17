@@ -10,6 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import com.example.notificationserrvice.entity.enums.NotificationType;
 import com.example.notificationserrvice.entity.enums.Priority;
 import com.example.notificationserrvice.entity.enums.ReferenceType;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 
@@ -26,8 +27,8 @@ import java.time.LocalDateTime;
 public class Notification {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @UuidGenerator
+    private String id;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)

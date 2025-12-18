@@ -23,7 +23,7 @@ public class NotificationResponse {
     private String title;
     private String content;
     private ReferenceType referenceType;
-    private Long referenceId;
+    private String referenceId;
     private Priority priority;
     private LocalDateTime createdAt;
     

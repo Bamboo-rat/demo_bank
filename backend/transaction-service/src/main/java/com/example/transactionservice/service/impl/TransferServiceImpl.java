@@ -376,13 +376,13 @@ public class TransferServiceImpl implements TransferService {
                     
                     // Sender info
                     .senderAccountNumber(transaction.getSourceAccountId())
-                    .senderCustomerId(sourceAccountInfo != null ? sourceAccountInfo.getAccountHolderName() : null)
+                    .senderCustomerId(sourceAccountInfo != null ? sourceAccountInfo.getCustomerId() : null)
                     .senderName(sourceAccountInfo != null ? sourceAccountInfo.getAccountHolderName() : null)
                     .senderEmail(null) // TODO: Get from customer service if needed
                     
                     // Receiver info
                     .receiverAccountNumber(transaction.getDestinationAccountId())
-                    .receiverCustomerId(destAccountInfo != null ? destAccountInfo.getAccountHolderName() : null)
+                    .receiverCustomerId(destAccountInfo != null ? destAccountInfo.getCustomerId() : null)
                     .receiverName(destAccountInfo != null ? destAccountInfo.getAccountHolderName() : null)
                     .receiverEmail(null) // TODO: Get from customer service if needed
                     .receiverBankCode(destAccountInfo != null ? destAccountInfo.getBankCode() : null)
@@ -467,18 +467,12 @@ public class TransferServiceImpl implements TransferService {
     /**
      * Tính phí giao dịch
      * Logic: 
-     * - Chuyển nội bộ (cùng ngân hàng): FREE
-     * - Chuyển ngoại tệ: 0.5% (min 10,000 VND)
-     * - Chuyển liên ngân hàng: 5,500 VND flat fee
+     * - Chuyển nội bộ (cùng ngân hàng): MIỄN PHÍ
+     * - Chuyển liên ngân hàng: MIỄN PHÍ
+     * - Chuyển ngoại tệ (không phải VND): 0.5% (tối thiểu 10,000 VND)
      */
     private BigDecimal calculateTransferFee(BigDecimal amount, AccountInfoDTO destAccount) {
-        // Chuyển nội bộ - FREE
-        if (destAccount != null && (destAccount.getBankCode() == null || destAccount.getBankCode().isBlank())) {
-            return BigDecimal.ZERO;
-        }
-        
-        // Chuyển liên ngân hàng - flat fee 5,500 VND
-        return new BigDecimal("5500.00");
+        return BigDecimal.ZERO;
     }
 
 

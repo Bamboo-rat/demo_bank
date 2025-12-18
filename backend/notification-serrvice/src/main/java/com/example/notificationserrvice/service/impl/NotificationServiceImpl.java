@@ -47,7 +47,7 @@ public class NotificationServiceImpl implements NotificationService {
             savedNotifications.add(savedSenderNotification);
             
             // Tạo UserNotificationStatus cho người gửi
-            createUserNotificationStatus(savedSenderNotification, Long.parseLong(event.getSenderCustomerId()));
+            createUserNotificationStatus(savedSenderNotification, event.getSenderCustomerId());
             
             log.info("Saved sender notification: {} for customer: {}", 
                     savedSenderNotification.getId(), event.getSenderCustomerId());
@@ -59,7 +59,7 @@ public class NotificationServiceImpl implements NotificationService {
                 savedNotifications.add(savedReceiverNotification);
                 
                 // Tạo UserNotificationStatus cho người nhận
-                createUserNotificationStatus(savedReceiverNotification, Long.parseLong(event.getReceiverCustomerId()));
+                createUserNotificationStatus(savedReceiverNotification, event.getReceiverCustomerId());
                 
                 log.info("Saved receiver notification: {} for customer: {}", 
                         savedReceiverNotification.getId(), event.getReceiverCustomerId());
@@ -80,7 +80,7 @@ public class NotificationServiceImpl implements NotificationService {
     /**
      * Tạo UserNotificationStatus cho notification
      */
-    private void createUserNotificationStatus(Notification notification, Long customerId) {
+    private void createUserNotificationStatus(Notification notification, String customerId) {
         UserNotificationStatus status = UserNotificationStatus.builder()
                 .notification(notification)
                 .customerId(customerId)
@@ -111,7 +111,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional(readOnly = true)
-    public NotificationPageResponse getCustomerNotifications(Long customerId, int page, int size) {
+    public NotificationPageResponse getCustomerNotifications(String customerId, int page, int size) {
         log.info("Getting notifications for customer: {}, page: {}, size: {}", customerId, page, size);
         
         Pageable pageable = PageRequest.of(page, size);
@@ -124,7 +124,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional(readOnly = true)
     public NotificationPageResponse getCustomerNotificationsByType(
-            Long customerId, NotificationType type, int page, int size) {
+            String customerId, NotificationType type, int page, int size) {
         log.info("Getting notifications for customer: {}, type: {}, page: {}, size: {}", 
                 customerId, type, page, size);
         
@@ -137,7 +137,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional(readOnly = true)
-    public NotificationResponse getNotificationDetail(Long customerId, String notificationId) {
+    public NotificationResponse getNotificationDetail(String customerId, String notificationId) {
         log.info("Getting notification detail: {} for customer: {}", notificationId, customerId);
         
         UserNotificationStatus status = userNotificationStatusRepository
@@ -149,7 +149,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
-    public NotificationResponse markAsRead(Long customerId, String notificationId) {
+    public NotificationResponse markAsRead(String customerId, String notificationId) {
         log.info("Marking notification as read: {} for customer: {}", notificationId, customerId);
         
         UserNotificationStatus status = userNotificationStatusRepository
@@ -169,7 +169,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
-    public int markAllAsRead(Long customerId) {
+    public int markAllAsRead(String customerId) {
         log.info("Marking all notifications as read for customer: {}", customerId);
         
         int count = userNotificationStatusRepository
@@ -181,7 +181,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional(readOnly = true)
-    public long countUnreadNotifications(Long customerId) {
+    public long countUnreadNotifications(String customerId) {
         log.info("Counting unread notifications for customer: {}", customerId);
         
         long count = userNotificationStatusRepository

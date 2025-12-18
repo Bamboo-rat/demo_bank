@@ -18,6 +18,9 @@ public class AccountInfoDTO {
     @Schema(description = "Số tài khoản", example = "ACC-2024-0001")
     private String accountNumber;
     
+    @Schema(description = "Mã khách hàng (UUID)", example = "550e8400-e29b-41d4-a716-446655440000")
+    private String customerId; // UUID của khách hàng
+    
     @Schema(description = "Tên chủ tài khoản", example = "Nguyễn Văn A")
     private String accountHolderName; // Tên chủ tài khoản
     

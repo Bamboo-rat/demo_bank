@@ -7,7 +7,7 @@ import java.util.Map;
  */
 public class NotificationNotFoundException extends BaseException {
     
-    public NotificationNotFoundException(String notificationId, Long customerId) {
+    public NotificationNotFoundException(String notificationId, String customerId) {
         super(
             ErrorCode.NOTIFICATION_NOT_FOUND,
             String.format("Không tìm thấy thông báo %s cho khách hàng %s", notificationId, customerId),

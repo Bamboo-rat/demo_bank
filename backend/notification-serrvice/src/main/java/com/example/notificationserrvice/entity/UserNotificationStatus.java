@@ -37,8 +37,8 @@ public class UserNotificationStatus {
                 foreignKey = @ForeignKey(name = "fk_user_notif_notification"))
     private Notification notification;
 
-    @Column(name = "customer_id", nullable = false)
-    private Long customerId;
+    @Column(name = "customer_id", nullable = false, length = 100)
+    private String customerId;
 
     @Column(name = "is_read", nullable = false)
     @Builder.Default

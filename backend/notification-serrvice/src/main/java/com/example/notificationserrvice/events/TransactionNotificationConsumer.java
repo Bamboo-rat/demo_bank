@@ -49,7 +49,7 @@ public class TransactionNotificationConsumer {
             
             // Validate event
             if (event == null || event.getTransactionId() == null) {
-                log.warn("Received invalid transaction notification event");
+                log.warn("Received invalid transaction notification event - acknowledging to skip");
                 acknowledgment.acknowledge();
                 return;
             }
@@ -57,15 +57,16 @@ public class TransactionNotificationConsumer {
             // Process notification
             processNotification(event);
 
-            // Acknowledge message after successful processing
+            // Acknowledge message ONLY after successful processing
             acknowledgment.acknowledge();
-            log.info("Transaction notification processed successfully - Transaction: {}", 
+            log.info("Transaction notification processed and acknowledged - Transaction: {}", 
                     event.getTransactionReference());
 
         } catch (Exception e) {
             log.error("Error processing transaction notification - Transaction: {}, Error: {}", 
                     event.getTransactionReference(), e.getMessage(), e);
-            acknowledgment.acknowledge();
+            // DO NOT acknowledge on error - message will be redelivered for retry
+            log.warn("Message NOT acknowledged due to error - will be redelivered for retry");
         }
     }
 

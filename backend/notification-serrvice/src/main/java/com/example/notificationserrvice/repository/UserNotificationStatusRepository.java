@@ -27,7 +27,7 @@ public interface UserNotificationStatusRepository extends JpaRepository<UserNoti
            "AND uns.deliveryChannel = :channel " +
            "ORDER BY n.createdAt DESC")
     Page<UserNotificationStatus> findByCustomerIdAndChannel(
-            @Param("customerId") Long customerId,
+            @Param("customerId") String customerId,
             @Param("channel") DeliveryChannel channel,
             Pageable pageable);
 
@@ -41,7 +41,7 @@ public interface UserNotificationStatusRepository extends JpaRepository<UserNoti
            "AND n.type = :type " +
            "ORDER BY n.createdAt DESC")
     Page<UserNotificationStatus> findByCustomerIdAndChannelAndType(
-            @Param("customerId") Long customerId,
+            @Param("customerId") String customerId,
             @Param("channel") DeliveryChannel channel,
             @Param("type") com.example.notificationserrvice.entity.enums.NotificationType type,
             Pageable pageable);
@@ -55,7 +55,7 @@ public interface UserNotificationStatusRepository extends JpaRepository<UserNoti
            "AND uns.deliveryChannel = :channel " +
            "AND uns.isRead = false")
     long countUnreadByCustomerIdAndChannel(
-            @Param("customerId") Long customerId,
+            @Param("customerId") String customerId,
             @Param("channel") DeliveryChannel channel);
 
     /**
@@ -66,7 +66,7 @@ public interface UserNotificationStatusRepository extends JpaRepository<UserNoti
            "WHERE uns.id = :id AND uns.customerId = :customerId")
     Optional<UserNotificationStatus> findByIdAndCustomerId(
             @Param("id") String id,
-            @Param("customerId") Long customerId);
+            @Param("customerId") String customerId);
 
     /**
      * Tìm notification status theo notification ID và customer ID
@@ -77,7 +77,7 @@ public interface UserNotificationStatusRepository extends JpaRepository<UserNoti
            "AND uns.deliveryChannel = :channel")
     Optional<UserNotificationStatus> findByNotificationIdAndCustomerIdAndChannel(
             @Param("notificationId") String notificationId,
-            @Param("customerId") Long customerId,
+            @Param("customerId") String customerId,
             @Param("channel") DeliveryChannel channel);
 
     /**
@@ -91,7 +91,7 @@ public interface UserNotificationStatusRepository extends JpaRepository<UserNoti
            "AND uns.deliveryChannel = :channel " +
            "AND uns.isRead = false")
     int markAllAsReadByCustomerIdAndChannel(
-            @Param("customerId") Long customerId,
+            @Param("customerId") String customerId,
             @Param("channel") DeliveryChannel channel);
 
     /**
@@ -102,6 +102,6 @@ public interface UserNotificationStatusRepository extends JpaRepository<UserNoti
            "AND uns.deliveryChannel = :channel " +
            "AND uns.isRead = false")
     List<String> findUnreadIdsByCustomerIdAndChannel(
-            @Param("customerId") Long customerId,
+            @Param("customerId") String customerId,
             @Param("channel") DeliveryChannel channel);
 }

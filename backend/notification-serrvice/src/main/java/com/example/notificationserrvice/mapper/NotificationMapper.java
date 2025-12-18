@@ -32,7 +32,7 @@ public class NotificationMapper {
                 .title(title)
                 .content(content)
                 .referenceType(ReferenceType.TRANSACTION)
-                .referenceId(Long.parseLong(event.getTransactionId()))
+                .referenceId(event.getTransactionId())
                 .priority(priority)
                 .createdBy(event.getSenderCustomerId())
                 .build();
@@ -59,7 +59,7 @@ public class NotificationMapper {
                 .title(title)
                 .content(content)
                 .referenceType(ReferenceType.TRANSACTION)
-                .referenceId(Long.parseLong(event.getTransactionId()))
+                .referenceId(event.getTransactionId())
                 .priority(priority)
                 .createdBy(event.getReceiverCustomerId())
                 .build();

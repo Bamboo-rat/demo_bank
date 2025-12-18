@@ -20,6 +20,7 @@ public class AccountInfoDTO implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private String accountNumber;
+    private String customerId; // UUID của khách hàng
     private String accountHolderName; // Tên chủ tài khoản
     private String accountType; // SAVINGS, CHECKING, etc.
     private String status; // ACTIVE, DORMANT, etc.

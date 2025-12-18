@@ -180,6 +180,7 @@ public class AccountServiceImpl implements AccountService {
 
         return AccountInfoDTO.builder()
                 .accountNumber(account.getAccountNumber())
+                .customerId(account.getCustomerId())
                 .accountHolderName(getAccountHolderName(account)) 
                 .accountType(account.getAccountType())
                 .status(account.getStatus())

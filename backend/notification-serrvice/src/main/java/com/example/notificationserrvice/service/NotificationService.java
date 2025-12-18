@@ -36,7 +36,7 @@ public interface NotificationService {
      * @param size Page size
      * @return Paginated notification response
      */
-    NotificationPageResponse getCustomerNotifications(Long customerId, int page, int size);
+    NotificationPageResponse getCustomerNotifications(String customerId, int page, int size);
 
     /**
      * Lấy danh sách thông báo theo loại
@@ -47,7 +47,7 @@ public interface NotificationService {
      * @param size Page size
      * @return Paginated notification response
      */
-    NotificationPageResponse getCustomerNotificationsByType(Long customerId, NotificationType type, int page, int size);
+    NotificationPageResponse getCustomerNotificationsByType(String customerId, NotificationType type, int page, int size);
 
     /**
      * Lấy chi tiết một thông báo
@@ -56,7 +56,7 @@ public interface NotificationService {
      * @param notificationId Notification ID
      * @return Notification detail
      */
-    NotificationResponse getNotificationDetail(Long customerId, String notificationId);
+    NotificationResponse getNotificationDetail(String customerId, String notificationId);
 
     /**
      * Đánh dấu thông báo đã đọc
@@ -65,7 +65,7 @@ public interface NotificationService {
      * @param notificationId Notification ID
      * @return Updated notification
      */
-    NotificationResponse markAsRead(Long customerId, String notificationId);
+    NotificationResponse markAsRead(String customerId, String notificationId);
 
     /**
      * Đánh dấu tất cả thông báo đã đọc
@@ -73,7 +73,7 @@ public interface NotificationService {
      * @param customerId Customer ID
      * @return Số lượng thông báo được đánh dấu
      */
-    int markAllAsRead(Long customerId);
+    int markAllAsRead(String customerId);
 
     /**
      * Đếm số thông báo chưa đọc
@@ -82,5 +82,5 @@ public interface NotificationService {
      * @param customerId Customer ID
      * @return Số lượng thông báo chưa đọc
      */
-    long countUnreadNotifications(Long customerId);
+    long countUnreadNotifications(String customerId);
 }

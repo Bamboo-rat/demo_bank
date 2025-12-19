@@ -207,4 +207,28 @@ public class CustomerController {
         ApiResponse<CustomerValidationResponse> response = ApiResponse.success("Customer retrieved", validationResponse);
         return ResponseEntity.ok(response);
     }
+
+    @Operation(
+            summary = "Lấy thông tin khách hàng theo ID",
+            description = "API lấy thông tin chi tiết khách hàng theo Customer ID. Dùng cho internal services."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Tìm thấy khách hàng",
+                    content = @Content(schema = @Schema(implementation = CustomerResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Không tìm thấy khách hàng"
+            )
+    })
+    @GetMapping("/{customerId}")
+    public ResponseEntity<ApiResponse<CustomerResponse>> getCustomerById(
+            @Parameter(description = "Customer ID", required = true, example = "CUST-001")
+            @PathVariable String customerId) {
+        CustomerResponse customer = customerService.getCustomerById(customerId);
+        ApiResponse<CustomerResponse> response = ApiResponse.success("Customer retrieved successfully", customer);
+        return ResponseEntity.ok(response);
+    }
 }

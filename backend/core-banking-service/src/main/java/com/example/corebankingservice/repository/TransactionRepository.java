@@ -4,9 +4,13 @@ import com.example.corebankingservice.entity.Transaction;
 import com.example.corebankingservice.entity.enums.TransactionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
+
 public interface TransactionRepository extends JpaRepository<Transaction, String> {
 
     boolean existsBySourceAccountIdAndStatus(String sourceAccountId, TransactionStatus status);
 
     boolean existsByDestinationAccountIdAndStatus(String destinationAccountId, TransactionStatus status);
+
+    Optional<Transaction> findByTraceId(String traceId);
 }

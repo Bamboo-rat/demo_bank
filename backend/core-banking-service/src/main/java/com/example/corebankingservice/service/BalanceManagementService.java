@@ -2,6 +2,8 @@ package com.example.corebankingservice.service;
 
 import com.example.corebankingservice.dto.request.BalanceOperationRequest;
 import com.example.corebankingservice.dto.response.BalanceOperationResponse;
+import com.example.corebankingservice.dto.request.TransferExecutionRequest;
+import com.example.corebankingservice.dto.response.TransferExecutionResponse;
 
 /**
  * Service for managing account balance operations
@@ -28,6 +30,15 @@ public interface BalanceManagementService {
      * @return balance operation response
      */
     BalanceOperationResponse credit(BalanceOperationRequest request);
+
+    /**
+     * Execute complete transfer operation (debit + credit + record transaction)
+     * This is the recommended method for transfers to ensure transaction is recorded in Core Banking
+     * 
+     * @param request the transfer execution request
+     * @return transfer execution response with transaction record
+     */
+    TransferExecutionResponse executeTransfer(TransferExecutionRequest request);
 
     /**
      * Hold (freeze) amount for pending transactions

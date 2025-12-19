@@ -6,10 +6,6 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
-/**
- * WebSocket Configuration
- * Cho phép gửi real-time notifications đến client
- */
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
@@ -28,7 +24,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Register STOMP endpoint
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*") // Configure based on your CORS policy
                 .withSockJS(); // Fallback for browsers that don't support WebSocket

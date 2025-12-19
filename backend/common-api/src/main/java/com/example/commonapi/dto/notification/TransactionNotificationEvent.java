@@ -27,6 +27,7 @@ public class TransactionNotificationEvent implements Serializable {
     private String senderCustomerId;
     private String senderName;
     private String senderEmail;
+    private String senderBankCode; 
     
     // Receiver info
     private String receiverAccountNumber;
@@ -52,6 +53,12 @@ public class TransactionNotificationEvent implements Serializable {
      * Kiểm tra xem có phải giao dịch nội bộ (cùng ngân hàng) không
      */
     public boolean isInternalTransfer() {
-        return receiverBankCode == null || receiverBankCode.isBlank();
+        if (receiverBankCode == null || receiverBankCode.isBlank()) {
+            return true;
+        }
+        if (senderBankCode != null && senderBankCode.equals(receiverBankCode)) {
+            return true;
+        }
+        return false;
     }
 }

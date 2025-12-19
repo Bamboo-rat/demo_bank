@@ -2,14 +2,16 @@ package com.example.transactionservice.service.impl;
 
 import com.example.commonapi.dto.ApiResponse;
 import com.example.commonapi.dto.account.AccountInfoDTO;
+import com.example.commonapi.dto.customer.CustomerBasicInfo;
 import com.example.transactionservice.client.CoreBankingClient;
-import com.example.transactionservice.dto.request.BalanceOperationRequest;
 import com.example.transactionservice.dto.request.TransferConfirmDTO;
 import com.example.transactionservice.dto.request.TransferRequestDTO;
-import com.example.transactionservice.dto.response.BalanceOperationResponse;
+import com.example.transactionservice.dto.request.TransferExecutionRequest;
 import com.example.transactionservice.dto.response.BalanceResponse;
 import com.example.transactionservice.dto.response.TransferResponseDTO;
+import com.example.transactionservice.dto.response.TransferExecutionResponse;
 import com.example.transactionservice.dubbo.consumer.AccountServiceClient;
+import com.example.transactionservice.dubbo.consumer.CustomerServiceClient;
 import com.example.transactionservice.entity.Transaction;
 import com.example.transactionservice.entity.enums.TransactionStatus;
 import com.example.transactionservice.entity.enums.TransactionType;
@@ -42,6 +44,7 @@ public class TransferServiceImpl implements TransferService {
     private final OtpService otpService;
     private final CoreBankingClient coreBankingClient;
     private final AccountServiceClient accountServiceClient;
+    private final CustomerServiceClient customerServiceClient;
     private final TransferMapper transferMapper;
     private final TransactionNotificationProducer notificationProducer;
 
@@ -196,55 +199,38 @@ public class TransferServiceImpl implements TransferService {
 
     /**
      * Execute transfer via Core Banking Service
+     * Uses executeTransfer API to ensure transaction is recorded in Core Banking
      */
     private void executeTransfer(Transaction transaction) {
-        log.info("Executing transfer via Core Banking Service");
+        log.info("Executing transfer via Core Banking Service using executeTransfer API");
 
-        // 1. Debit from source account
-        BalanceOperationRequest debitRequest = BalanceOperationRequest.builder()
-            .accountNumber(transaction.getSourceAccountId())
+        // Build request for complete transfer execution
+        TransferExecutionRequest transferRequest = TransferExecutionRequest.builder()
+            .sourceAccountNumber(transaction.getSourceAccountId())
+            .destinationAccountNumber(transaction.getDestinationAccountId())
             .amount(transaction.getAmount())
+            .fee(BigDecimal.ZERO)
             .transactionReference(transaction.getReferenceNumber())
-            .description("Transfer to " + transaction.getDestinationAccountId())
+            .description(transaction.getDescription())
             .performedBy(transaction.getCreatedBy())
             .build();
 
-        ApiResponse<BalanceOperationResponse> debitResponse = coreBankingClient.debitBalance(debitRequest);
-        
-        if (!debitResponse.isSuccess()) {
-            throw new TransferFailedException("Debit failed: " + debitResponse.getMessage());
-        }
-        log.info("Debit successful from account: {}", transaction.getSourceAccountId());
-
         try {
-            // 2. Credit to destination account
-            BalanceOperationRequest creditRequest = BalanceOperationRequest.builder()
-                .accountNumber(transaction.getDestinationAccountId())
-                .amount(transaction.getAmount())
-                .transactionReference(transaction.getReferenceNumber())
-                .description("Transfer from " + transaction.getSourceAccountId())
-                .performedBy(transaction.getCreatedBy())
-                .build();
-
-            ApiResponse<BalanceOperationResponse> creditResponse = coreBankingClient.creditBalance(creditRequest);
+            // Execute complete transfer (debit + credit + record transaction)
+            ApiResponse<TransferExecutionResponse> response = coreBankingClient.executeTransfer(transferRequest);
             
-            if (!creditResponse.isSuccess()) {
-                // Rollback: Credit back to source account
-                log.error("Credit failed, initiating rollback");
-                coreBankingClient.creditBalance(debitRequest);
-                throw new TransferFailedException("Credit failed: " + creditResponse.getMessage());
+            if (!response.isSuccess()) {
+                throw new TransferFailedException("Transfer execution failed: " + response.getMessage());
             }
-            log.info("Credit successful to account: {}", transaction.getDestinationAccountId());
+
+            TransferExecutionResponse transferResponse = response.getData();
+            log.info("Transfer executed successfully. Core Banking TransactionId: {}, TraceId: {}", 
+                    transferResponse.getTransactionId(), 
+                    transferResponse.getTransactionReference());
+
         } catch (Exception e) {
-            // Rollback: Credit back to source account
-            log.error("Exception during credit, initiating rollback", e);
-            try {
-                coreBankingClient.creditBalance(debitRequest);
-                log.info("Rollback successful");
-            } catch (Exception rollbackException) {
-                log.error("Rollback failed!", rollbackException);
-            }
-            throw e;
+            log.error("Transfer execution failed", e);
+            throw new TransferFailedException("Transfer execution failed: " + e.getMessage(), e);
         }
     }
 
@@ -364,6 +350,28 @@ public class TransferServiceImpl implements TransferService {
             AccountInfoDTO sourceAccountInfo = accountServiceClient.getAccountInfo(transaction.getSourceAccountId());
             AccountInfoDTO destAccountInfo = accountServiceClient.getAccountInfo(transaction.getDestinationAccountId());
             
+            // Lấy email từ Customer Service qua Dubbo
+            String senderEmail = null;
+            String receiverEmail = null;
+            
+            try {
+                if (sourceAccountInfo != null && sourceAccountInfo.getCustomerId() != null) {
+                    CustomerBasicInfo senderCustomer = customerServiceClient.getCustomerBasicInfo(sourceAccountInfo.getCustomerId());
+                    if (senderCustomer != null) {
+                        senderEmail = senderCustomer.getEmail();
+                    }
+                }
+                
+                if (destAccountInfo != null && destAccountInfo.getCustomerId() != null) {
+                    CustomerBasicInfo receiverCustomer = customerServiceClient.getCustomerBasicInfo(destAccountInfo.getCustomerId());
+                    if (receiverCustomer != null) {
+                        receiverEmail = receiverCustomer.getEmail();
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch customer emails via Dubbo, notifications may not be sent: {}", e.getMessage());
+            }
+            
             // Lấy balance sau giao dịch
             ApiResponse<BalanceResponse> sourceBalanceResponse = coreBankingClient.getBalance(transaction.getSourceAccountId());
             ApiResponse<BalanceResponse> destBalanceResponse = coreBankingClient.getBalance(transaction.getDestinationAccountId());
@@ -378,13 +386,14 @@ public class TransferServiceImpl implements TransferService {
                     .senderAccountNumber(transaction.getSourceAccountId())
                     .senderCustomerId(sourceAccountInfo != null ? sourceAccountInfo.getCustomerId() : null)
                     .senderName(sourceAccountInfo != null ? sourceAccountInfo.getAccountHolderName() : null)
-                    .senderEmail(null) // TODO: Get from customer service if needed
+                    .senderEmail(senderEmail)
+                    .senderBankCode(sourceAccountInfo != null ? sourceAccountInfo.getBankCode() : null)
                     
                     // Receiver info
                     .receiverAccountNumber(transaction.getDestinationAccountId())
                     .receiverCustomerId(destAccountInfo != null ? destAccountInfo.getCustomerId() : null)
                     .receiverName(destAccountInfo != null ? destAccountInfo.getAccountHolderName() : null)
-                    .receiverEmail(null) // TODO: Get from customer service if needed
+                    .receiverEmail(receiverEmail)
                     .receiverBankCode(destAccountInfo != null ? destAccountInfo.getBankCode() : null)
                     .receiverBankName(destAccountInfo != null ? destAccountInfo.getBankName() : null)
                     

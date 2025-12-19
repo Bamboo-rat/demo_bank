@@ -2,7 +2,9 @@ package com.example.corebankingservice.controller;
 
 import com.example.commonapi.dto.ApiResponse;
 import com.example.corebankingservice.dto.request.BalanceOperationRequest;
+import com.example.corebankingservice.dto.request.TransferExecutionRequest;
 import com.example.corebankingservice.dto.response.BalanceOperationResponse;
+import com.example.corebankingservice.dto.response.TransferExecutionResponse;
 import com.example.corebankingservice.service.BalanceManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -95,6 +97,40 @@ public class BalanceManagementController {
             @RequestBody @Valid BalanceOperationRequest request) {
         BalanceOperationResponse response = balanceManagementService.credit(request);
         return ResponseEntity.ok(ApiResponse.success(getMessage("success.credit.api"), response));
+    }
+
+    @Operation(
+            summary = "Thực thi chuyển khoản hoàn chỉnh (Execute Transfer)",
+            description = "API thực thi chuyển khoản hoàn chỉnh bao gồm: trừ tiền nguồn, cộng tiền đích, " +
+                    "và **GHI NHẬN GIAO DỊCH VÀO BẢNG TRANSACTION CỦA CORE BANKING**. " +
+                    "Đây là phương thức được khuyến nghị cho chuyển khoản để đảm bảo dữ liệu được ghi nhận đầy đủ. " +
+                    "**Idempotent**: Nếu transactionReference đã tồn tại, sẽ trả về kết quả cũ."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Chuyển khoản thành công và đã ghi nhận vào Core Banking",
+                    content = @Content(schema = @Schema(implementation = TransferExecutionResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Dữ liệu không hợp lệ hoặc số dư không đủ"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Không tìm thấy tài khoản"
+            )
+    })
+    @PostMapping("/execute-transfer")
+    public ResponseEntity<ApiResponse<TransferExecutionResponse>> executeTransfer(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Thông tin yêu cầu thực thi chuyển khoản",
+                    required = true,
+                    content = @Content(schema = @Schema(implementation = TransferExecutionRequest.class))
+            )
+            @RequestBody @Valid TransferExecutionRequest request) {
+        TransferExecutionResponse response = balanceManagementService.executeTransfer(request);
+        return ResponseEntity.ok(ApiResponse.success("Transfer executed and recorded successfully in Core Banking", response));
     }
 
     @Operation(

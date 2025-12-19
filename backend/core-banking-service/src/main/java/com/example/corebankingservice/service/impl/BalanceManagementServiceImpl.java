@@ -1,15 +1,22 @@
 package com.example.corebankingservice.service.impl;
 
 import com.example.corebankingservice.dto.request.BalanceOperationRequest;
+import com.example.corebankingservice.dto.request.TransferExecutionRequest;
+import com.example.corebankingservice.dto.request.TransactionRecordRequest;
 import com.example.corebankingservice.dto.response.BalanceOperationResponse;
+import com.example.corebankingservice.dto.response.TransferExecutionResponse;
 import com.example.corebankingservice.entity.Account;
 import com.example.corebankingservice.entity.BalanceAuditLog;
+import com.example.corebankingservice.entity.Transaction;
 import com.example.corebankingservice.entity.enums.AccountStatus;
+import com.example.corebankingservice.entity.enums.TransactionStatus;
+import com.example.corebankingservice.entity.enums.TransactionType;
 import com.example.corebankingservice.exception.BusinessException;
 import com.example.corebankingservice.exception.ResourceNotFoundException;
 import com.example.corebankingservice.repository.AccountRepository;
 import com.example.corebankingservice.repository.BalanceAuditLogRepository;
 import com.example.corebankingservice.service.BalanceManagementService;
+import com.example.corebankingservice.service.TransactionRecordService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
@@ -30,6 +37,7 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
 
     private final AccountRepository accountRepository;
     private final BalanceAuditLogRepository auditLogRepository;
+    private final TransactionRecordService transactionRecordService;
     private final MessageSource messageSource;
 
     @Override
@@ -203,6 +211,121 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
                 .operationTime(LocalDateTime.now())
                 .message(getMessage("success.credit.completed"))
                 .build();
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public TransferExecutionResponse executeTransfer(TransferExecutionRequest request) {
+        log.info("Executing complete transfer in Core Banking: source={}, dest={}, amount={}, ref={}", 
+                request.getSourceAccountNumber(), 
+                request.getDestinationAccountNumber(), 
+                request.getAmount(), 
+                request.getTransactionReference());
+
+        // Step 1: Debit from source account
+        BalanceOperationRequest debitRequest = BalanceOperationRequest.builder()
+                .accountNumber(request.getSourceAccountNumber())
+                .amount(request.getAmount())
+                .transactionReference(request.getTransactionReference())
+                .description("Transfer to " + request.getDestinationAccountNumber())
+                .performedBy(request.getPerformedBy())
+                .build();
+
+        BalanceOperationResponse debitResponse = debit(debitRequest);
+        log.info("Debit successful: account={}, new_balance={}", 
+                request.getSourceAccountNumber(), debitResponse.getNewBalance());
+
+        try {
+            // Step 2: Credit to destination account
+            BalanceOperationRequest creditRequest = BalanceOperationRequest.builder()
+                    .accountNumber(request.getDestinationAccountNumber())
+                    .amount(request.getAmount())
+                    .transactionReference(request.getTransactionReference())
+                    .description("Transfer from " + request.getSourceAccountNumber())
+                    .performedBy(request.getPerformedBy())
+                    .build();
+
+            BalanceOperationResponse creditResponse = credit(creditRequest);
+            log.info("Credit successful: account={}, new_balance={}", 
+                    request.getDestinationAccountNumber(), creditResponse.getNewBalance());
+
+            // Step 3: Record transaction in Core Banking Transaction table
+            TransactionRecordRequest transactionRecordRequest = TransactionRecordRequest.builder()
+                    .sourceAccountId(request.getSourceAccountNumber())
+                    .destinationAccountId(request.getDestinationAccountNumber())
+                    .amount(request.getAmount())
+                    .fee(request.getFee() != null ? request.getFee() : BigDecimal.ZERO)
+                    .transactionType(TransactionType.TRANSFER)
+                    .status(TransactionStatus.COMPLETED)
+                    .traceId(request.getTransactionReference())
+                    .description(request.getDescription())
+                    .createdBy(request.getPerformedBy())
+                    .sourceBalanceBefore(debitResponse.getPreviousBalance())
+                    .sourceBalanceAfter(debitResponse.getNewBalance())
+                    .destBalanceBefore(creditResponse.getPreviousBalance())
+                    .destBalanceAfter(creditResponse.getNewBalance())
+                    .build();
+
+            Transaction transaction = transactionRecordService.recordTransferTransaction(transactionRecordRequest);
+            log.info("Transaction recorded in Core Banking: transactionId={}, traceId={}", 
+                    transaction.getTransactionId(), transaction.getTraceId());
+
+            // Step 4: Build response
+            return TransferExecutionResponse.builder()
+                    .transactionId(transaction.getTransactionId())
+                    .sourceAccountNumber(request.getSourceAccountNumber())
+                    .destinationAccountNumber(request.getDestinationAccountNumber())
+                    .amount(request.getAmount())
+                    .fee(request.getFee() != null ? request.getFee() : BigDecimal.ZERO)
+                    .sourceBalanceBefore(debitResponse.getPreviousBalance())
+                    .sourceBalanceAfter(debitResponse.getNewBalance())
+                    .sourceAvailableBalance(debitResponse.getAvailableBalance())
+                    .destBalanceBefore(creditResponse.getPreviousBalance())
+                    .destBalanceAfter(creditResponse.getNewBalance())
+                    .destAvailableBalance(creditResponse.getAvailableBalance())
+                    .transactionReference(request.getTransactionReference())
+                    .currency(debitResponse.getCurrency())
+                    .executionTime(LocalDateTime.now())
+                    .message("Transfer executed successfully and recorded in Core Banking")
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Transfer execution failed, initiating rollback", e);
+            // Rollback: Credit back to source account
+            try {
+                BalanceOperationRequest rollbackRequest = BalanceOperationRequest.builder()
+                        .accountNumber(request.getSourceAccountNumber())
+                        .amount(request.getAmount())
+                        .transactionReference(request.getTransactionReference() + "-ROLLBACK")
+                        .description("Rollback failed transfer")
+                        .performedBy("SYSTEM")
+                        .build();
+                credit(rollbackRequest);
+                log.info("Rollback successful");
+
+                // Record failed transaction
+                try {
+                    TransactionRecordRequest failedTransactionRequest = TransactionRecordRequest.builder()
+                            .sourceAccountId(request.getSourceAccountNumber())
+                            .destinationAccountId(request.getDestinationAccountNumber())
+                            .amount(request.getAmount())
+                            .fee(request.getFee() != null ? request.getFee() : BigDecimal.ZERO)
+                            .transactionType(TransactionType.TRANSFER)
+                            .status(TransactionStatus.FAILED)
+                            .traceId(request.getTransactionReference())
+                            .description("FAILED: " + e.getMessage())
+                            .createdBy(request.getPerformedBy())
+                            .build();
+                    transactionRecordService.recordTransferTransaction(failedTransactionRequest);
+                } catch (Exception recordException) {
+                    log.error("Failed to record failed transaction", recordException);
+                }
+
+            } catch (Exception rollbackException) {
+                log.error("Rollback failed!", rollbackException);
+            }
+            throw new BusinessException("Transfer execution failed: " + e.getMessage(), e);
+        }
     }
 
     @Override

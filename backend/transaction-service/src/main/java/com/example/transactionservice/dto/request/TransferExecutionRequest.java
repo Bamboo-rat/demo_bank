@@ -1,8 +1,8 @@
 package com.example.transactionservice.dto.request;
 
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,22 +10,23 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/**
- * Request DTO for balance operations
- * Used to call Core Banking Service via Feign Client
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class BalanceOperationRequest {
+public class TransferExecutionRequest {
 
-    @NotBlank(message = "Account number is required")
-    private String accountNumber;
+    @NotBlank(message = "Source account number is required")
+    private String sourceAccountNumber;
+
+    @NotBlank(message = "Destination account number is required")
+    private String destinationAccountNumber;
 
     @NotNull(message = "Amount is required")
-    @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
+    @Positive(message = "Amount must be positive")
     private BigDecimal amount;
+
+    private BigDecimal fee;
 
     @NotBlank(message = "Transaction reference is required")
     private String transactionReference;

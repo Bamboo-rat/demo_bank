@@ -1,9 +1,9 @@
 package com.example.transactionservice.client;
 
 import com.example.commonapi.dto.ApiResponse;
-import com.example.transactionservice.dto.request.BalanceOperationRequest;
-import com.example.transactionservice.dto.response.BalanceOperationResponse;
+import com.example.transactionservice.dto.request.TransferExecutionRequest;
 import com.example.transactionservice.dto.response.BalanceResponse;
+import com.example.transactionservice.dto.response.TransferExecutionResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 /**
  * Feign Client for Core Banking Service
- * Used for balance operations (debit/credit/hold/release)
+ * Used for balance queries and transfer execution
  */
 @FeignClient(
     name = "core-banking-service",
@@ -29,34 +29,11 @@ public interface CoreBankingClient {
     ApiResponse<BalanceResponse> getBalance(@PathVariable("accountNumber") String accountNumber);
 
     /**
-     * Debit amount from account
-     * @param request balance operation request
-     * @return operation response
+     * Execute complete transfer (debit + credit + record transaction in Core Banking)
+     * This is the recommended method for transfers to ensure transaction is properly recorded
+     * @param request transfer execution request
+     * @return transfer execution response with Core Banking transaction ID
      */
-    @PostMapping("/api/balance/debit")
-    ApiResponse<BalanceOperationResponse> debitBalance(@RequestBody BalanceOperationRequest request);
-
-    /**
-     * Credit amount to account
-     * @param request balance operation request
-     * @return operation response
-     */
-    @PostMapping("/api/balance/credit")
-    ApiResponse<BalanceOperationResponse> creditBalance(@RequestBody BalanceOperationRequest request);
-
-    /**
-     * Hold amount in account
-     * @param request balance operation request
-     * @return operation response
-     */
-    @PostMapping("/api/balance/hold")
-    ApiResponse<BalanceOperationResponse> holdAmount(@RequestBody BalanceOperationRequest request);
-
-    /**
-     * Release held amount
-     * @param request balance operation request
-     * @return operation response
-     */
-    @PostMapping("/api/balance/release-hold")
-    ApiResponse<BalanceOperationResponse> releaseHoldAmount(@RequestBody BalanceOperationRequest request);
+    @PostMapping("/api/balance/execute-transfer")
+    ApiResponse<TransferExecutionResponse> executeTransfer(@RequestBody TransferExecutionRequest request);
 }

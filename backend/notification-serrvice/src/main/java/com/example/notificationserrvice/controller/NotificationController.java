@@ -41,7 +41,7 @@ public class NotificationController {
             @Parameter(description = "Số lượng thông báo mỗi trang")
             @RequestParam(defaultValue = "20") int size) {
         
-        Long customerId = getCurrentCustomerId();
+        String customerId = getCurrentCustomerId();
         log.info("Getting notifications for customer: {}, page: {}, size: {}", customerId, page, size);
         
         NotificationPageResponse response = notificationService.getCustomerNotifications(customerId, page, size);
@@ -62,7 +62,7 @@ public class NotificationController {
             @Parameter(description = "Số lượng thông báo mỗi trang")
             @RequestParam(defaultValue = "20") int size) {
         
-        Long customerId = getCurrentCustomerId();
+        String customerId = getCurrentCustomerId();
         log.info("Getting notifications by type for customer: {}, type: {}, page: {}, size: {}", 
                 customerId, type, page, size);
         
@@ -81,7 +81,7 @@ public class NotificationController {
             @Parameter(description = "ID của thông báo")
             @PathVariable String notificationId) {
         
-        Long customerId = getCurrentCustomerId();
+        String customerId = getCurrentCustomerId();
         log.info("Getting notification detail: {} for customer: {}", notificationId, customerId);
         
         NotificationResponse response = notificationService.getNotificationDetail(customerId, notificationId);
@@ -98,7 +98,7 @@ public class NotificationController {
             @Parameter(description = "ID của thông báo")
             @PathVariable String notificationId) {
         
-        Long customerId = getCurrentCustomerId();
+        String customerId = getCurrentCustomerId();
         log.info("Marking notification as read: {} for customer: {}", notificationId, customerId);
         
         NotificationResponse response = notificationService.markAsRead(customerId, notificationId);
@@ -112,7 +112,7 @@ public class NotificationController {
     )
     @PutMapping("/mark-all-read")
     public ResponseEntity<ApiResponse<Integer>> markAllAsRead() {
-        Long customerId = getCurrentCustomerId();
+        String customerId = getCurrentCustomerId();
         log.info("Marking all notifications as read for customer: {}", customerId);
         
         int count = notificationService.markAllAsRead(customerId);
@@ -127,7 +127,7 @@ public class NotificationController {
     )
     @GetMapping("/unread-count")
     public ResponseEntity<ApiResponse<UnreadCountResponse>> getUnreadCount() {
-        Long customerId = getCurrentCustomerId();
+        String customerId = getCurrentCustomerId();
         log.info("Getting unread notification count for customer: {}", customerId);
         
         long count = notificationService.countUnreadNotifications(customerId);
@@ -141,14 +141,17 @@ public class NotificationController {
     /**
      * Lấy customer ID từ JWT token
      */
-    private Long getCurrentCustomerId() {
+    private String getCurrentCustomerId() {
         Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String customerIdStr = jwt.getClaim("customerId");
+        if (customerIdStr == null) {
+            customerIdStr = jwt.getSubject();
+        }
         
         if (customerIdStr == null) {
             throw new RuntimeException("Customer ID not found in token");
         }
         
-        return Long.parseLong(customerIdStr);
+        return customerIdStr;
     }
 }

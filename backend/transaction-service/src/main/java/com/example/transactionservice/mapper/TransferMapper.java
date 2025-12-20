@@ -27,9 +27,7 @@ public interface TransferMapper {
     @Mapping(target = "status", expression = "java(transaction.getStatus().name())")
     @Mapping(target = "completedAt", expression = "java(getCompletedAt(transaction))")
     @Mapping(target = "message", ignore = true)
-    @Mapping(target = "otpSent", ignore = true)
-    @Mapping(target = "maskedPhoneNumber", ignore = true)
-    @Mapping(target = "otpExpiryMinutes", ignore = true)
+    @Mapping(target = "digitalOtpRequired", constant = "false")
     TransferResponseDTO toResponseDTO(Transaction transaction);
 
     /**
@@ -44,30 +42,20 @@ public interface TransferMapper {
     @Mapping(target = "status", expression = "java(transaction.getStatus().name())")
     @Mapping(target = "completedAt", expression = "java(getCompletedAt(transaction))")
     @Mapping(source = "message", target = "message")
-    @Mapping(target = "otpSent", ignore = true)
-    @Mapping(target = "maskedPhoneNumber", ignore = true)
-    @Mapping(target = "otpExpiryMinutes", ignore = true)
+    @Mapping(target = "digitalOtpRequired", constant = "false")
     TransferResponseDTO toResponseDTOWithMessage(Transaction transaction, String message);
 
     /**
-     * Build TransferResponseDTO for OTP request
-     * Used after initiating transfer
+     * Build TransferResponseDTO for Digital OTP initiation response
      */
     @Mapping(source = "transaction.sourceAccountId", target = "sourceAccountNumber")
     @Mapping(source = "transaction.destinationAccountId", target = "destinationAccountNumber")
     @Mapping(source = "transaction.transactionDate", target = "createdAt")
     @Mapping(target = "status", expression = "java(transaction.getStatus().name())")
-    @Mapping(source = "maskedPhoneNumber", target = "maskedPhoneNumber")
-    @Mapping(source = "otpExpiryMinutes", target = "otpExpiryMinutes")
-    @Mapping(source = "message", target = "message")
-    @Mapping(target = "otpSent", constant = "true")
     @Mapping(target = "completedAt", ignore = true)
-    TransferResponseDTO toOtpResponseDTO(
-        Transaction transaction, 
-        String maskedPhoneNumber, 
-        Integer otpExpiryMinutes,
-        String message
-    );
+    @Mapping(source = "message", target = "message")
+    @Mapping(target = "digitalOtpRequired", constant = "true")
+    TransferResponseDTO toDigitalOtpResponse(Transaction transaction, String message);
 
     /**
      * Helper method to determine completed time

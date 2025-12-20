@@ -92,4 +92,27 @@ public class Customer {
     @Builder.Default
     private boolean emailVerified = false;
 
+    // Digital OTP fields
+    @Lob
+    @Column(name = "digital_pin_hash", columnDefinition = "VARBINARY(255)")
+    private byte[] digitalPinHash;
+
+    @Lob
+    @Column(name = "digital_public_key", columnDefinition = "TEXT")
+    private String digitalPublicKey;
+
+    @Column(name = "digital_otp_enabled")
+    @Builder.Default
+    private boolean digitalOtpEnabled = false;
+
+    @Column(name = "digital_otp_failed_attempts")
+    @Builder.Default
+    private int digitalOtpFailedAttempts = 0;
+
+    @Column(name = "digital_otp_locked_until")
+    private LocalDateTime digitalOtpLockedUntil;
+
+    @Column(name = "digital_otp_enrolled_at")
+    private LocalDateTime digitalOtpEnrolledAt;
+
 }

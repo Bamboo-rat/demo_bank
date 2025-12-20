@@ -3,7 +3,6 @@ package com.example.transactionservice.dto.request;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,7 +11,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 
 /**
- * Request DTO to initiate transfer (Step 1: Generate OTP)
+ * Request DTO to initiate transfer (Step 1: Trigger Digital OTP challenge)
  */
 @Data
 @NoArgsConstructor
@@ -31,10 +30,6 @@ public class TransferRequestDTO {
     private BigDecimal amount;
 
     private String description;
-
-    @NotBlank(message = "Phone number is required for OTP")
-    @Pattern(regexp = "^(\\+84|0)[0-9]{9,10}$", message = "Invalid phone number format")
-    private String phoneNumber;
 
     private String beneficiaryName; // Optional: for display confirmation
 }

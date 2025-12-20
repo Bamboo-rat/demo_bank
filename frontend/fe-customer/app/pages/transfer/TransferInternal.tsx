@@ -4,9 +4,33 @@ import Layout from '~/component/layout/Layout'
 import { transactionService, type TransferRequest, type TransferResponse, type AccountInfo } from '~/service/transactionService'
 import { accountService, type AccountSummary } from '~/service/accountService'
 import { customerService, type CustomerProfile } from '~/service/customerService'
+import ConfigDigitalOtp from '~/component/features/ConfigDigitalOtp'
+import { digitalOtpService, type DigitalOtpStatus } from '~/service/digitalOtpService'
+import {
+  computeTotpToken,
+  getCurrentTimeSlice,
+  getStoredOtpSecret,
+  getStoredSalt,
+  getTimeRemainingInSlice,
+  hashPinWithSalt
+} from '~/utils/digitalOtp'
 
 interface TransferStep {
   step: 'input' | 'confirm' | 'otp' | 'success'
+}
+
+const DIGITAL_PIN_LENGTH = 6
+
+const buildDigitalOtpPayload = (transaction: TransferResponse, timeSlice: number): string => {
+  const destinationBank = transaction.destinationBankCode ?? 'KIENLONG'
+  return [
+    transaction.transactionId,
+    transaction.sourceAccountNumber,
+    transaction.destinationAccountNumber,
+    destinationBank,
+    transaction.amount.toString(),
+    timeSlice.toString()
+  ].join('|')
 }
 
 const TransferInternal = () => {
@@ -14,7 +38,6 @@ const TransferInternal = () => {
   const [currentStep, setCurrentStep] = useState<TransferStep['step']>('input')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
-  const [profile, setProfile] = useState<CustomerProfile | null>(null)
   
   // Form data
   const [sourceAccount, setSourceAccount] = useState<AccountSummary | null>(null)
@@ -26,24 +49,60 @@ const TransferInternal = () => {
   
   // Transaction data
   const [transactionData, setTransactionData] = useState<TransferResponse | null>(null)
-  const [otp, setOtp] = useState('')
+  const [digitalOtpPin, setDigitalOtpPin] = useState('')
+  const [otpToken, setOtpToken] = useState('')
+  const [otpCountdown, setOtpCountdown] = useState(0)
+  const [generatingToken, setGeneratingToken] = useState(false)
+  const tokenTimerRef = React.useRef<number | null>(null)
+  const currentSliceRef = React.useRef<number | null>(null)
   
   // Load user accounts
   const [myAccounts, setMyAccounts] = useState<AccountSummary[]>([])
+  const [profile, setProfile] = useState<CustomerProfile | null>(null)
+  const [digitalOtpStatus, setDigitalOtpStatus] = useState<DigitalOtpStatus | null>(null)
+  const [digitalOtpLoading, setDigitalOtpLoading] = useState(true)
+  const [digitalOtpError, setDigitalOtpError] = useState('')
+  const [showDigitalOtpModal, setShowDigitalOtpModal] = useState(false)
   
   React.useEffect(() => {
     loadMyAccounts()
-    loadProfile()
+    void initializeDigitalOtp()
   }, [])
-  
-  const loadProfile = async () => {
-    try {
-      const profileData = await customerService.getMyProfile()
-      setProfile(profileData)
-    } catch (err) {
-      console.error('Failed to load profile:', err)
+
+  const stopTokenTimer = React.useCallback(() => {
+    if (tokenTimerRef.current) {
+      window.clearInterval(tokenTimerRef.current)
+      tokenTimerRef.current = null
     }
-  }
+  }, [])
+
+  const refreshOtpToken = React.useCallback(async (secret: string) => {
+    if (!transactionData) return
+    const slice = getCurrentTimeSlice()
+    const payload = buildDigitalOtpPayload(transactionData, slice)
+    const token = await computeTotpToken(secret, payload)
+    currentSliceRef.current = slice
+    setOtpToken(token)
+    setOtpCountdown(getTimeRemainingInSlice())
+  }, [transactionData])
+
+  const startTokenTimer = React.useCallback((secret: string) => {
+    stopTokenTimer()
+    void refreshOtpToken(secret)
+    tokenTimerRef.current = window.setInterval(() => {
+      setOtpCountdown(getTimeRemainingInSlice())
+      const sliceNow = getCurrentTimeSlice()
+      if (currentSliceRef.current !== sliceNow) {
+        void refreshOtpToken(secret)
+      }
+    }, 1000)
+  }, [refreshOtpToken, stopTokenTimer])
+
+  React.useEffect(() => {
+    return () => {
+      stopTokenTimer()
+    }
+  }, [stopTokenTimer])
   
   const loadMyAccounts = async () => {
     try {
@@ -56,6 +115,44 @@ const TransferInternal = () => {
       setError(err instanceof Error ? err.message : 'Không thể tải danh sách tài khoản')
     }
   }
+
+  const initializeDigitalOtp = async () => {
+    setDigitalOtpLoading(true)
+    setDigitalOtpError('')
+
+    try {
+      const profileData = await customerService.getMyProfile()
+      setProfile(profileData)
+      await fetchDigitalOtpStatus(profileData.customerId)
+    } catch (err) {
+      setDigitalOtpError(err instanceof Error ? err.message : 'Không thể kiểm tra Digital OTP')
+    } finally {
+      setDigitalOtpLoading(false)
+    }
+  }
+
+  const fetchDigitalOtpStatus = async (customerIdValue: string) => {
+    try {
+      const status = await digitalOtpService.getStatus(customerIdValue)
+      setDigitalOtpStatus(status)
+      setShowDigitalOtpModal(!status.enrolled)
+      setDigitalOtpError('')
+    } catch (err) {
+      setDigitalOtpError(err instanceof Error ? err.message : 'Không thể kiểm tra Digital OTP')
+    }
+  }
+
+  const handleDigitalOtpSuccess = async () => {
+    if (!profile?.customerId) return
+    await fetchDigitalOtpStatus(profile.customerId)
+    setShowDigitalOtpModal(false)
+  }
+
+  const digitalOtpReady = Boolean(digitalOtpStatus?.enrolled && !digitalOtpStatus.locked)
+  const digitalOtpLockedUntil = digitalOtpStatus?.lockedUntilTimestamp
+    ? new Date(digitalOtpStatus.lockedUntilTimestamp).toLocaleString('vi-VN')
+    : null
+  const disableTransfers = digitalOtpLoading || !digitalOtpReady
   
   const handleGetAccountInfo = async () => {
     if (!destinationAccountNumber.trim()) {
@@ -91,6 +188,12 @@ const TransferInternal = () => {
   
   const handleSubmitTransfer = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!digitalOtpReady) {
+      setError('Vui lòng kích hoạt Digital OTP trước khi chuyển tiền')
+      setShowDigitalOtpModal(true)
+      return
+    }
     
     if (!sourceAccount) {
       setError('Vui lòng chọn tài khoản nguồn')
@@ -113,8 +216,10 @@ const TransferInternal = () => {
   
   const handleConfirmTransfer = async () => {
     if (!sourceAccount) return
-    if (!profile?.phoneNumber) {
-      setError('Không tìm thấy số điện thoại. Vui lòng cập nhật thông tin cá nhân.')
+
+    if (!digitalOtpReady) {
+      setError('Vui lòng kích hoạt Digital OTP trước khi chuyển tiền')
+      setShowDigitalOtpModal(true)
       return
     }
     
@@ -128,12 +233,15 @@ const TransferInternal = () => {
         amount: parseFloat(amount),
         description: description || 'Chuyển tiền nội bộ',
         feePaymentMethod,
-        transferType: 'INTERNAL',
-        phoneNumber: profile.phoneNumber
+        transferType: 'INTERNAL'
       }
       
       const response = await transactionService.initiateTransfer(request)
       setTransactionData(response)
+      setDigitalOtpPin('')
+      setOtpToken('')
+      setOtpCountdown(0)
+      stopTokenTimer()
       setCurrentStep('otp')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Không thể khởi tạo giao dịch')
@@ -141,29 +249,82 @@ const TransferInternal = () => {
       setLoading(false)
     }
   }
-  
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+
+  const handleRevealDigitalOtpToken = async () => {
     if (!transactionData) return
-    
-    if (!otp.trim() || otp.length !== 6) {
-      setError('Vui lòng nhập mã OTP 6 số')
+
+    if (digitalOtpPin.length !== DIGITAL_PIN_LENGTH) {
+      setError(`PIN Digital OTP phải gồm ${DIGITAL_PIN_LENGTH} chữ số`)
       return
     }
-    
+
+    const secret = getStoredOtpSecret()
+    const saltBase64 = getStoredSalt()
+
+    if (!secret || !saltBase64) {
+      setError('Không tìm thấy khóa Digital OTP trên trình duyệt. Vui lòng cấu hình lại.')
+      setShowDigitalOtpModal(true)
+      return
+    }
+
+    setGeneratingToken(true)
+    setError('')
+
+    try {
+      // Hash PIN upfront to ensure dữ liệu nhập hợp lệ, hash được tái sử dụng ở bước xác nhận.
+      await hashPinWithSalt(digitalOtpPin, saltBase64)
+      startTokenTimer(secret)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể tạo mã Digital OTP')
+      stopTokenTimer()
+      setOtpToken('')
+      setOtpCountdown(0)
+    } finally {
+      setGeneratingToken(false)
+    }
+  }
+  
+  const handleVerifyDigitalOtp = async (event: React.FormEvent) => {
+    event.preventDefault()
+
+    if (!transactionData) return
+
+    if (digitalOtpPin.length !== DIGITAL_PIN_LENGTH) {
+      setError(`PIN Digital OTP phải gồm ${DIGITAL_PIN_LENGTH} chữ số`)
+      return
+    }
+
+    const secret = getStoredOtpSecret()
+    const saltBase64 = getStoredSalt()
+
+    if (!secret || !saltBase64) {
+      setError('Không tìm thấy khóa Digital OTP trên trình duyệt. Vui lòng cấu hình lại.')
+      setShowDigitalOtpModal(true)
+      return
+    }
+
     setLoading(true)
     setError('')
-    
+
     try {
+      const pinHashCurrent = await hashPinWithSalt(digitalOtpPin, saltBase64)
+      const timeSlice = getCurrentTimeSlice()
+      const payload = buildDigitalOtpPayload(transactionData, timeSlice)
+      const digitalOtpToken = await computeTotpToken(secret, payload)
+
       const confirmed = await transactionService.confirmTransfer({
         transactionId: transactionData.transactionId,
-        otp
+        digitalOtpToken,
+        pinHashCurrent
       })
+      setDigitalOtpPin('')
+      setOtpToken('')
+      setOtpCountdown(0)
+      stopTokenTimer()
       setTransactionData(confirmed)
       setCurrentStep('success')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Mã OTP không đúng')
+      setError(err instanceof Error ? err.message : 'Không thể xác thực Digital OTP')
     } finally {
       setLoading(false)
     }
@@ -174,12 +335,15 @@ const TransferInternal = () => {
   }
   
   const resetForm = () => {
+    stopTokenTimer()
     setCurrentStep('input')
     setDestinationAccountNumber('')
     setDestinationAccountInfo(null)
     setAmount('')
     setDescription('')
-    setOtp('')
+    setDigitalOtpPin('')
+    setOtpToken('')
+    setOtpCountdown(0)
     setTransactionData(null)
     setError('')
   }
@@ -193,144 +357,191 @@ const TransferInternal = () => {
           <p className="text-gray-600 mt-2">Chuyển tiền đến tài khoản KienlongBank khác</p>
         </div>
 
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            {['Nhập thông tin', 'Xác nhận', 'Xác thực OTP', 'Hoàn thành'].map((label, idx) => (
-              <div key={idx} className="flex-1 flex items-center">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                  idx <= ['input', 'confirm', 'otp', 'success'].indexOf(currentStep)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-300 text-gray-600'
-                }`}>
-                  {idx + 1}
-                </div>
-                <div className="flex-1 ml-2 text-sm font-medium text-gray-700">{label}</div>
-                {idx < 3 && <div className="flex-1 h-1 bg-gray-300 mx-2" />}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
+        {digitalOtpLoading && (
+          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-blue-900">
+            Đang kiểm tra trạng thái Digital OTP của bạn...
           </div>
         )}
 
-        {/* Step 1: Input Form */}
-        {currentStep === 'input' && (
-          <form onSubmit={handleSubmitTransfer} className="bg-white rounded-lg shadow p-6">
-            <div className="space-y-6">
-              {/* Source Account */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Từ tài khoản <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={sourceAccount?.accountNumber || ''}
-                  onChange={(e) => setSourceAccount(myAccounts.find(a => a.accountNumber === e.target.value) || null)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  {myAccounts.map(account => (
-                    <option key={account.accountId} value={account.accountNumber}>
-                      {account.accountNumber} - {account.accountTypeLabel}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        {digitalOtpError && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+            <div className="flex items-center justify-between gap-4">
+              <span>{digitalOtpError}</span>
+              <button
+                type="button"
+                onClick={() => { void initializeDigitalOtp() }}
+                className="px-3 py-1 rounded-md border border-red-300 text-sm hover:bg-red-100"
+              >
+                Thử lại
+              </button>
+            </div>
+          </div>
+        )}
 
-              {/* Destination Account */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Đến tài khoản <span className="text-red-500">*</span>
-                </label>
-                <div className="flex gap-2">
+        {!digitalOtpLoading && digitalOtpStatus && !digitalOtpStatus.enrolled && (
+          <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-semibold text-yellow-900">Bạn chưa cấu hình Digital OTP</p>
+              <p className="text-sm text-yellow-800">Vui lòng cấu hình để tiếp tục sử dụng tính năng chuyển tiền.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowDigitalOtpModal(true)}
+              className="px-4 py-2 rounded-lg bg-yellow-600 text-white font-semibold hover:bg-yellow-700"
+            >
+              Cấu hình ngay
+            </button>
+          </div>
+        )}
+
+        {digitalOtpStatus?.locked && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+            Digital OTP đang bị khóa do nhập sai quá nhiều lần.
+            {digitalOtpLockedUntil && (
+              <span className="block text-sm mt-1">Sẽ tự mở khóa vào: {digitalOtpLockedUntil}</span>
+            )}
+          </div>
+        )}
+
+        <div className={disableTransfers ? 'pointer-events-none opacity-50' : ''}>
+          {/* Progress Steps */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              {['Nhập thông tin', 'Xác nhận', 'Xác thực Digital OTP', 'Hoàn thành'].map((label, idx) => (
+                <div key={idx} className="flex-1 flex items-center">
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                    idx <= ['input', 'confirm', 'otp', 'success'].indexOf(currentStep)
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-300 text-gray-600'
+                  }`}>
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 ml-2 text-sm font-medium text-gray-700">{label}</div>
+                  {idx < 3 && <div className="flex-1 h-1 bg-gray-300 mx-2" />}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
+          {/* Step 1: Input Form */}
+          {currentStep === 'input' && (
+            <form onSubmit={handleSubmitTransfer} className="bg-white rounded-lg shadow p-6">
+              <div className="space-y-6">
+                {/* Source Account */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Từ tài khoản <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={sourceAccount?.accountNumber || ''}
+                    onChange={(e) => setSourceAccount(myAccounts.find(a => a.accountNumber === e.target.value) || null)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    {myAccounts.map(account => (
+                      <option key={account.accountId} value={account.accountNumber}>
+                        {account.accountNumber} - {account.accountTypeLabel}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Destination Account */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Đến tài khoản <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={destinationAccountNumber}
+                      onChange={(e) => setDestinationAccountNumber(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleGetAccountInfo())}
+                      placeholder="Nhập số tài khoản"
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGetAccountInfo}
+                      disabled={loading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                    >
+                      {loading ? 'Đang kiểm tra...' : 'Kiểm tra'}
+                    </button>
+                  </div>
+                  
+                  {destinationAccountInfo && (
+                    <div className="mt-2 p-3 bg-green-50 border border-green-100 rounded">
+                      <p className="text-md text-black">
+                        {destinationAccountInfo.accountHolderName}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Số tiền <span className="text-red-500">*</span>
+                  </label>
                   <input
-                    type="text"
-                    value={destinationAccountNumber}
-                    onChange={(e) => setDestinationAccountNumber(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleGetAccountInfo())}
-                    placeholder="Nhập số tài khoản"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0"
+                    min="1000"
+                    step="1000"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     required
                   />
+                  {amount && !isNaN(parseFloat(amount)) && (
+                    <p className="text-sm text-gray-600 mt-1">{formatCurrency(parseFloat(amount))}</p>
+                  )}
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nội dung chuyển tiền
+                  </label>
+                  <input
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Nhập nội dung chuyển tiền"
+                    maxLength={200}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-4 pt-4">
                   <button
                     type="button"
-                    onClick={handleGetAccountInfo}
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                    onClick={() => navigate('/transfer')}
+                    className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
                   >
-                    {loading ? 'Đang kiểm tra...' : 'Kiểm tra'}
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!destinationAccountInfo || loading}
+                    className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                  >
+                    Tiếp tục
                   </button>
                 </div>
-                
-                {destinationAccountInfo && (
-                  <div className="mt-2 p-3 bg-green-50 border border-green-100 rounded">
-                    <p className="text-md text-black">
-                      {destinationAccountInfo.accountHolderName}
-                    </p>
-                  </div>
-                )}
               </div>
-
-              {/* Amount */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Số tiền <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0"
-                  min="1000"
-                  step="1000"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-                {amount && !isNaN(parseFloat(amount)) && (
-                  <p className="text-sm text-gray-600 mt-1">{formatCurrency(parseFloat(amount))}</p>
-                )}
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nội dung chuyển tiền
-                </label>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Nhập nội dung chuyển tiền"
-                  maxLength={200}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => navigate('/transfer')}
-                  className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={!destinationAccountInfo || loading}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
-                >
-                  Tiếp tục
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
+            </form>
+          )}
 
         {/* Step 2: Confirmation */}
         {currentStep === 'confirm' && destinationAccountInfo && (
@@ -388,46 +599,81 @@ const TransferInternal = () => {
           </div>
         )}
 
-        {/* Step 3: OTP Verification */}
+        {/* Step 3: Digital OTP Verification */}
         {currentStep === 'otp' && transactionData && (
-          <form onSubmit={handleVerifyOTP} className="bg-white rounded-lg shadow p-6">
+          <form onSubmit={handleVerifyDigitalOtp} className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Xác thực giao dịch</h2>
             
-            <div className="mb-6">
-              <p className="text-gray-600 mb-4">
-                Mã OTP đã được gửi đến số điện thoại của bạn. Vui lòng nhập mã để hoàn tất giao dịch.
+            <div className="mb-6 space-y-4">
+              <p className="text-gray-600">
+                Nhập PIN Digital OTP để mở khóa mã 6 số tự động thay đổi mỗi 30 giây. Mã này sẽ được gửi kèm theo giao dịch để xác nhận với hệ thống.
               </p>
-            
 
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mã OTP <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="Nhập mã OTP 6 số"
-                maxLength={6}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-widest"
-                required
-                autoFocus
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  PIN Digital OTP <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={digitalOtpPin}
+                  onChange={(e) => setDigitalOtpPin(e.target.value.replace(/\D/g, '').slice(0, DIGITAL_PIN_LENGTH))}
+                  placeholder="••••••"
+                  maxLength={DIGITAL_PIN_LENGTH}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-widest"
+                  required
+                  autoFocus
+                />
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mt-4">
+                  <button
+                    type="button"
+                    onClick={handleRevealDigitalOtpToken}
+                    disabled={generatingToken || digitalOtpPin.length !== DIGITAL_PIN_LENGTH}
+                    className="px-5 py-3 rounded-lg border border-blue-500 text-blue-600 font-semibold hover:bg-blue-50 disabled:opacity-60"
+                  >
+                    {generatingToken ? 'Đang tạo mã...' : 'Hiển thị mã 6 số'}
+                  </button>
+                  <p className="text-sm text-gray-500">
+                    Mã mới sẽ tự cập nhật và hết hạn sau 30 giây.
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm uppercase tracking-wide text-blue-500 font-semibold">Mã Digital OTP</p>
+                  <p className="text-4xl font-mono font-semibold text-blue-900 tracking-widest">
+                    {otpToken || '••••••'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-blue-800">Thời gian còn lại</p>
+                  <p className="text-2xl font-bold text-blue-900">{otpToken ? `${otpCountdown}s` : '--'}</p>
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-4">
               <button
                 type="button"
-                onClick={() => setCurrentStep('confirm')}
+                onClick={() => {
+                  stopTokenTimer()
+                  setOtpToken('')
+                  setOtpCountdown(0)
+                  setDigitalOtpPin('')
+                  setCurrentStep('confirm')
+                }}
                 className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
               >
                 Quay lại
               </button>
               <button
                 type="submit"
-                disabled={loading || otp.length !== 6}
+                disabled={loading || digitalOtpPin.length !== DIGITAL_PIN_LENGTH || !otpToken}
                 className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
               >
-                {loading ? 'Đang xác thực...' : 'Xác nhận'}
+                {loading ? 'Đang xác thực...' : 'Ký và xác nhận'}
               </button>
             </div>
           </form>
@@ -485,7 +731,25 @@ const TransferInternal = () => {
             </div>
           </div>
         )}
+        </div>
+
+        {disableTransfers && !digitalOtpLoading && (
+          <p className="mt-4 text-center text-sm text-gray-600">
+            Vui lòng hoàn tất cấu hình Digital OTP trước khi thực hiện giao dịch chuyển tiền.
+          </p>
+        )}
       </div>
+
+      {profile?.customerId && (
+        <ConfigDigitalOtp
+          open={showDigitalOtpModal}
+          customerId={profile.customerId}
+          mode={digitalOtpStatus?.enrolled ? 'update' : 'enroll'}
+          disableClose={!digitalOtpStatus?.enrolled}
+          onClose={() => setShowDigitalOtpModal(false)}
+          onSuccess={() => { void handleDigitalOtpSuccess() }}
+        />
+      )}
     </Layout>
   )
 }

@@ -16,7 +16,7 @@ import java.util.List;
 
 /**
  * Transfer Controller
- * Handles money transfer operations with OTP verification
+ * Handles money transfer operations with Digital OTP verification
  */
 @Slf4j
 @RestController
@@ -27,7 +27,7 @@ public class TransferController {
     private final TransferService transferService;
 
     /**
-     * Step 1: Initiate transfer and generate OTP
+     * Step 1: Initiate transfer and trigger Digital OTP challenge
      * POST /api/transactions/transfer/request
      */
     @PostMapping("/transfer/request")
@@ -42,11 +42,14 @@ public class TransferController {
         
         return ResponseEntity
             .status(HttpStatus.CREATED)
-            .body(ApiResponse.success("Transfer initiated. OTP sent to your phone.", response));
+            .body(ApiResponse.success(
+                "Transfer initiated. Approve the Digital OTP prompt to continue.",
+                response
+            ));
     }
 
     /**
-     * Step 2: Confirm transfer with OTP
+     * Step 2: Confirm transfer with Digital OTP token
      * POST /api/transactions/transfer/confirm
      */
     @PostMapping("/transfer/confirm")

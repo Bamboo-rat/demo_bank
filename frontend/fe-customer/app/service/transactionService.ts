@@ -34,12 +34,12 @@ export interface TransferRequest {
   description: string
   feePaymentMethod: 'SOURCE' | 'DESTINATION'
   transferType: 'INTERNAL' | 'INTERBANK'
-  phoneNumber: string
 }
 
 export interface TransferConfirm {
   transactionId: string
-  otp: string
+  digitalOtpToken: string
+  pinHashCurrent: string
 }
 
 export interface TransferResponse {
@@ -56,6 +56,7 @@ export interface TransferResponse {
   transferType: string
   createdAt: string
   completedAt?: string
+  digitalOtpRequired?: boolean
 }
 
 export interface AccountInfo {

@@ -3,6 +3,9 @@ package com.example.transactionservice.service.impl;
 import com.example.commonapi.dto.ApiResponse;
 import com.example.commonapi.dto.account.AccountInfoDTO;
 import com.example.commonapi.dto.customer.CustomerBasicInfo;
+import com.example.commonapi.dto.digitalotp.DigitalOtpStatusResponse;
+import com.example.commonapi.dto.digitalotp.DigitalOtpValidationRequest;
+import com.example.commonapi.dto.digitalotp.DigitalOtpValidationResponse;
 import com.example.transactionservice.client.CoreBankingClient;
 import com.example.transactionservice.dto.request.TransferConfirmDTO;
 import com.example.transactionservice.dto.request.TransferRequestDTO;
@@ -12,6 +15,7 @@ import com.example.transactionservice.dto.response.TransferResponseDTO;
 import com.example.transactionservice.dto.response.TransferExecutionResponse;
 import com.example.transactionservice.dubbo.consumer.AccountServiceClient;
 import com.example.transactionservice.dubbo.consumer.CustomerServiceClient;
+import com.example.transactionservice.dubbo.consumer.DigitalOtpServiceClient;
 import com.example.transactionservice.entity.Transaction;
 import com.example.transactionservice.entity.enums.TransactionStatus;
 import com.example.transactionservice.entity.enums.TransactionType;
@@ -20,7 +24,6 @@ import com.example.transactionservice.events.producer.TransactionNotificationPro
 import com.example.transactionservice.exception.*;
 import com.example.transactionservice.mapper.TransferMapper;
 import com.example.transactionservice.repository.TransactionRepository;
-import com.example.transactionservice.service.OtpService;
 import com.example.transactionservice.service.TransferService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,12 +44,16 @@ import java.util.stream.Collectors;
 public class TransferServiceImpl implements TransferService {
 
     private final TransactionRepository transactionRepository;
-    private final OtpService otpService;
     private final CoreBankingClient coreBankingClient;
     private final AccountServiceClient accountServiceClient;
     private final CustomerServiceClient customerServiceClient;
+    private final DigitalOtpServiceClient digitalOtpServiceClient;
     private final TransferMapper transferMapper;
     private final TransactionNotificationProducer notificationProducer;
+
+    private static final BigDecimal MIN_TRANSFER_AMOUNT = new BigDecimal("1");
+    private static final BigDecimal MAX_TRANSFER_AMOUNT = new BigDecimal("100000000000");
+    private static final int MAX_DECIMAL_SCALE = 3;
 
     @Override
     @Transactional
@@ -56,8 +63,14 @@ public class TransferServiceImpl implements TransferService {
             request.getDestinationAccountNumber(), 
             request.getAmount());
 
+        // Validate raw amount before any downstream call
+        validateTransferAmount(request.getAmount());
+
         // 1. Validate accounts exist and active
-        validateAccounts(request.getSourceAccountNumber(), request.getDestinationAccountNumber());
+        AccountInfoDTO sourceAccountInfo = validateAccounts(
+            request.getSourceAccountNumber(),
+            request.getDestinationAccountNumber()
+        );
 
         // 2. Check balance before OTP
         validateBalance(request.getSourceAccountNumber(), request.getAmount());
@@ -78,19 +91,46 @@ public class TransferServiceImpl implements TransferService {
         transaction = transactionRepository.save(transaction);
         log.info("Transaction created with ID: {}", transaction.getTransactionId());
 
-        // 4. Generate and send OTP
-        String otp = otpService.generateOtp(transaction.getTransactionId(), request.getPhoneNumber());
+        // 4. Ensure Digital OTP is available for this customer
+        String customerId = extractCustomerId(sourceAccountInfo);
+        ensureDigitalOtpReady(customerId);
 
-        return transferMapper.toOtpResponseDTO(
+        return transferMapper.toDigitalOtpResponse(
             transaction,
-            maskPhoneNumber(request.getPhoneNumber()),
-            5,
-            "OTP sent successfully. Please check your phone."
+            "Digital OTP challenge sent. Approve it in your web to continue."
         );
     }
 
+    private void validateTransferAmount(BigDecimal amount) {
+        if (amount == null) {
+            throw new InvalidTransactionException("Transfer amount is required");
+        }
+
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidTransactionException("Transfer amount must be greater than 0");
+        }
+
+        if (amount.scale() > MAX_DECIMAL_SCALE) {
+            throw new InvalidTransactionException(
+                String.format("Transfer amount precision cannot exceed %d decimal places", MAX_DECIMAL_SCALE)
+            );
+        }
+
+        if (amount.compareTo(MIN_TRANSFER_AMOUNT) < 0) {
+            throw new InvalidTransactionException(
+                String.format("Transfer amount must be at least %s VND", MIN_TRANSFER_AMOUNT.toPlainString())
+            );
+        }
+
+        if (amount.compareTo(MAX_TRANSFER_AMOUNT) > 0) {
+            throw new InvalidTransactionException(
+                String.format("Transfer amount exceeds the maximum limit of %s VND", MAX_TRANSFER_AMOUNT.toPlainString())
+            );
+        }
+    }
+
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = TransferFailedException.class)
     public TransferResponseDTO confirmTransfer(TransferConfirmDTO confirmDTO) {
         log.info("Confirming transfer: {}", confirmDTO.getTransactionId());
 
@@ -103,15 +143,40 @@ public class TransferServiceImpl implements TransferService {
             throw new InvalidTransactionException("Transaction is not in PENDING status: " + transaction.getStatus());
         }
 
-        // 3. Validate OTP
-        boolean otpValid = otpService.validateOtp(confirmDTO.getTransactionId(), confirmDTO.getOtp());
-        if (!otpValid) {
-            log.warn("Invalid OTP for transaction: {}", confirmDTO.getTransactionId());
-            throw new OtpValidationException("Invalid or expired OTP");
+        // 3. Get customer ID from source account
+        AccountInfoDTO sourceAccountInfo = accountServiceClient.getAccountInfo(transaction.getSourceAccountId());
+        String customerId = extractCustomerId(sourceAccountInfo);
+
+        // 4. Enforce Digital OTP flow
+        ensureDigitalOtpReady(customerId);
+
+        if (confirmDTO.getDigitalOtpToken() == null || confirmDTO.getTimestamp() == null) {
+            throw new OtpValidationException("Digital OTP token and timestamp are required");
         }
 
-        // 4. Invalidate OTP after successful validation
-        otpService.invalidateOtp(confirmDTO.getTransactionId());
+        // Validate Digital OTP
+        DigitalOtpValidationRequest validationRequest = DigitalOtpValidationRequest.builder()
+            .customerId(customerId)
+            .digitalOtpToken(confirmDTO.getDigitalOtpToken())
+            .transactionId(transaction.getTransactionId())
+            .sourceAccountNumber(transaction.getSourceAccountId())
+            .destinationAccountNumber(transaction.getDestinationAccountId())
+            .amount(transaction.getAmount())
+            .timestamp(confirmDTO.getTimestamp())
+            .build();
+
+        DigitalOtpValidationResponse validationResponse = digitalOtpServiceClient.validateDigitalOtp(validationRequest);
+
+        if (!validationResponse.isValid()) {
+            log.warn("Digital OTP validation failed for transaction: {}. Error: {}",
+                confirmDTO.getTransactionId(), validationResponse.getMessage());
+            throw new OtpValidationException(
+                validationResponse.getMessage() +
+                " (Remaining attempts: " + validationResponse.getRemainingAttempts() + ")"
+            );
+        }
+
+        log.info("Digital OTP validation successful for transaction: {}", confirmDTO.getTransactionId());
 
         // 5. Update status to PROCESSING
         transaction.setStatus(TransactionStatus.PROCESSING);
@@ -189,9 +254,6 @@ public class TransferServiceImpl implements TransferService {
         transaction.setStatus(TransactionStatus.CANCELLED);
         transactionRepository.save(transaction);
 
-        // Invalidate OTP if exists
-        otpService.invalidateOtp(transactionId);
-
         log.info("Transaction cancelled: {}", transactionId);
 
         return transferMapper.toResponseDTOWithMessage(transaction, "Transaction cancelled");
@@ -237,7 +299,7 @@ public class TransferServiceImpl implements TransferService {
     /**
      * Validate accounts exist and active
      */
-    private void validateAccounts(String sourceAccount, String destinationAccount) {
+    private AccountInfoDTO validateAccounts(String sourceAccount, String destinationAccount) {
         if (sourceAccount.equals(destinationAccount)) {
             throw new AccountValidationException(
                     ErrorCode.SAME_ACCOUNT_TRANSFER,
@@ -277,6 +339,7 @@ public class TransferServiceImpl implements TransferService {
             }
 
             log.info("Accounts validated successfully");
+            return sourceAccountInfo;
         } catch (AccountValidationException e) {
             throw e;
         } catch (Exception e) {
@@ -285,6 +348,31 @@ public class TransferServiceImpl implements TransferService {
                 ErrorCode.ACCOUNT_SERVICE_UNAVAILABLE,
                 "Unable to validate accounts. Account service is unavailable: " + e.getMessage(),
                 e
+            );
+        }
+    }
+
+    private String extractCustomerId(AccountInfoDTO accountInfo) {
+        if (accountInfo == null || accountInfo.getCustomerId() == null) {
+            throw new AccountValidationException(
+                ErrorCode.SOURCE_ACCOUNT_NOT_FOUND,
+                "Unable to retrieve customer information for source account"
+            );
+        }
+        return accountInfo.getCustomerId();
+    }
+
+    private void ensureDigitalOtpReady(String customerId) {
+        DigitalOtpStatusResponse status = digitalOtpServiceClient.getDigitalOtpStatus(customerId);
+        if (!status.isEnrolled()) {
+            throw new OtpValidationException(
+                "Digital OTP enrollment is required to initiate or confirm transfers."
+            );
+        }
+
+        if (status.isLocked()) {
+            throw new OtpValidationException(
+                "Digital OTP is locked due to too many failed attempts. Please contact support."
             );
         }
     }
@@ -334,12 +422,6 @@ public class TransferServiceImpl implements TransferService {
     /**
      * Mask phone number for security
      */
-    private String maskPhoneNumber(String phoneNumber) {
-        if (phoneNumber == null || phoneNumber.length() < 4) {
-            return "****";
-        }
-        return "*".repeat(phoneNumber.length() - 4) + phoneNumber.substring(phoneNumber.length() - 4);
-    }
 
     /**
      * Gửi notification event qua Kafka khi transfer thành công

@@ -28,8 +28,6 @@ public class TransferResponseDTO {
     private LocalDateTime completedAt;
     private String message;
 
-    // For OTP request response
-    private Boolean otpSent;
-    private String maskedPhoneNumber;
-    private Integer otpExpiryMinutes;
+    // Digital OTP metadata
+    private Boolean digitalOtpRequired;
 }

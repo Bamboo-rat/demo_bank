@@ -3,6 +3,7 @@ package com.example.transactionservice.client;
 import com.example.commonapi.dto.ApiResponse;
 import com.example.transactionservice.dto.request.TransferExecutionRequest;
 import com.example.transactionservice.dto.response.BalanceResponse;
+import com.example.transactionservice.dto.response.PartnerBankAccountResponse;
 import com.example.transactionservice.dto.response.TransferExecutionResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,4 +37,16 @@ public interface CoreBankingClient {
      */
     @PostMapping("/api/balance/execute-transfer")
     ApiResponse<TransferExecutionResponse> executeTransfer(@RequestBody TransferExecutionRequest request);
+
+    /**
+     * Verify external bank account through partner bank service
+     * @param bankCode partner bank code
+     * @param accountNumber account number to verify
+     * @return partner bank account response
+     */
+    @GetMapping("/api/partner/{bankCode}/verify/{accountNumber}")
+    ApiResponse<PartnerBankAccountResponse> verifyExternalAccount(
+        @PathVariable("bankCode") String bankCode,
+        @PathVariable("accountNumber") String accountNumber
+    );
 }

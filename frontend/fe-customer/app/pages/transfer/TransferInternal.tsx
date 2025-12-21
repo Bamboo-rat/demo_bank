@@ -5,7 +5,11 @@ import { transactionService, type TransferRequest, type TransferResponse, type A
 import { accountService, type AccountSummary } from '~/service/accountService'
 import { customerService, type CustomerProfile } from '~/service/customerService'
 import ConfigDigitalOtp from '~/component/features/ConfigDigitalOtp'
+import BeneficiaryQuickSelect from '~/component/features/beneficiary/BeneficiaryQuickSelect'
+import SaveBeneficiaryForm from '~/component/features/beneficiary/SaveBeneficiaryForm'
 import { digitalOtpService, type DigitalOtpStatus } from '~/service/digitalOtpService'
+import type { Beneficiary } from '~/type/beneficiary'
+import { beneficiaryService } from '~/service/beneficiaryService'
 import {
   computeTotpToken,
   getCurrentTimeSlice,
@@ -35,6 +39,7 @@ const buildDigitalOtpPayload = (transaction: TransferResponse, timeSlice: number
 
 const TransferInternal = () => {
   const navigate = useNavigate()
+  const customerId = localStorage.getItem('customerId') || ''
   const [currentStep, setCurrentStep] = useState<TransferStep['step']>('input')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
@@ -46,6 +51,11 @@ const TransferInternal = () => {
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
   const [feePaymentMethod, setFeePaymentMethod] = useState<'SOURCE' | 'DESTINATION'>('SOURCE')
+  
+  // Save to beneficiary
+  const [showSaveBeneficiaryModal, setShowSaveBeneficiaryModal] = useState(false)
+  const [isExistingBeneficiary, setIsExistingBeneficiary] = useState(false)
+  const [saveBeneficiaryLoading, setSaveBeneficiaryLoading] = useState(false)
   
   // Transaction data
   const [transactionData, setTransactionData] = useState<TransferResponse | null>(null)
@@ -178,12 +188,29 @@ const TransferInternal = () => {
     try {
       const info = await transactionService.getAccountInfo(destinationAccountNumber)
       setDestinationAccountInfo(info)
+      
+      // Check if this account is already in beneficiaries
+      if (customerId) {
+        try {
+          const beneficiaries = await beneficiaryService.getAllBeneficiaries(customerId)
+          const exists = beneficiaries.some(b => b.beneficiaryAccountNumber === destinationAccountNumber)
+          setIsExistingBeneficiary(exists)
+        } catch {
+          setIsExistingBeneficiary(false)
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Không tìm thấy tài khoản')
       setDestinationAccountInfo(null)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleBeneficiarySelect = (beneficiary: Beneficiary) => {
+    setDestinationAccountNumber(beneficiary.beneficiaryAccountNumber)
+    // Auto-verify the selected account
+    void handleGetAccountInfo()
   }
   
   const handleSubmitTransfer = async (e: React.FormEvent) => {
@@ -333,6 +360,28 @@ const TransferInternal = () => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
   }
+
+  const handleSaveBeneficiary = async (nickname: string, note: string) => {
+    if (!customerId || !destinationAccountInfo) return
+
+    setSaveBeneficiaryLoading(true)
+    try {
+      await beneficiaryService.createBeneficiary(customerId, {
+        beneficiaryAccountNumber: destinationAccountInfo.accountNumber,
+        beneficiaryName: destinationAccountInfo.accountHolderName,
+        bankCode: destinationAccountInfo.bankCode || 'KIENLONG',
+        bankName: destinationAccountInfo.bankName || 'KienLongBank',
+        nickname: nickname || undefined,
+        note: note || undefined
+      })
+      setShowSaveBeneficiaryModal(false)
+      // Success notification handled by form
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể lưu vào danh bạ')
+    } finally {
+      setSaveBeneficiaryLoading(false)
+    }
+  }
   
   const resetForm = () => {
     stopTokenTimer()
@@ -346,6 +395,8 @@ const TransferInternal = () => {
     setOtpCountdown(0)
     setTransactionData(null)
     setError('')
+    setShowSaveBeneficiaryModal(false)
+    setIsExistingBeneficiary(false)
   }
 
   return (
@@ -485,6 +536,14 @@ const TransferInternal = () => {
                       </p>
                     </div>
                   )}
+
+                  {/* Beneficiary Quick Select */}
+                  <div className="mt-3">
+                    <BeneficiaryQuickSelect 
+                      onSelect={handleBeneficiarySelect}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
 
                 {/* Amount */}
@@ -729,6 +788,18 @@ const TransferInternal = () => {
                 Xem lịch sử
               </button>
             </div>
+
+            {/* Show save to beneficiary button if not existing */}
+            {!isExistingBeneficiary && destinationAccountInfo && (
+              <button
+                type="button"
+                onClick={() => setShowSaveBeneficiaryModal(true)}
+                className="mt-4 w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
+              >
+                <span className="material-icons-round text-sm">person_add</span>
+                Lưu vào danh bạ thụ hưởng
+              </button>
+            )}
           </div>
         )}
         </div>
@@ -749,6 +820,21 @@ const TransferInternal = () => {
           onClose={() => setShowDigitalOtpModal(false)}
           onSuccess={() => { void handleDigitalOtpSuccess() }}
         />
+      )}
+
+      {/* Save to Beneficiary Modal */}
+      {showSaveBeneficiaryModal && destinationAccountInfo && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-semibold mb-4 text-gray-900">Lưu vào danh bạ thụ hưởng</h3>
+            <SaveBeneficiaryForm
+              accountInfo={destinationAccountInfo}
+              onSubmit={handleSaveBeneficiary}
+              onCancel={() => setShowSaveBeneficiaryModal(false)}
+              loading={saveBeneficiaryLoading}
+            />
+          </div>
+        </div>
       )}
     </Layout>
   )

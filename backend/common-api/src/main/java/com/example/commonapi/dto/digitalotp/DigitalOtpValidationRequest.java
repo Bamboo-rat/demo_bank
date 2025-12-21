@@ -20,12 +20,14 @@ public class DigitalOtpValidationRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String customerId;
-    private String digitalOtpToken;      // Signed token from client
+    private String digitalOtpToken;      // 6-digit TOTP token from client
+    private String pinHashCurrent;       // Current PIN hash for verification
     
-    // Transaction payload fields (used for signature verification)
+    // Transaction payload fields (used for TOTP generation)
     private String transactionId;        // Nonce for replay protection
     private String sourceAccountNumber;
     private String destinationAccountNumber;
+    private String destinationBankCode;  // Bank code for interbank transfers
     private BigDecimal amount;
-    private Long timestamp;              // Client timestamp (within 30s window)
+    private Long timestamp;              // Client timestamp (time slice * 30000)
 }

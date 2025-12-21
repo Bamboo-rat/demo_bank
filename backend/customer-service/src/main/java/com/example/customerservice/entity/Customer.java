@@ -92,14 +92,17 @@ public class Customer {
     @Builder.Default
     private boolean emailVerified = false;
 
-    // Digital OTP fields
+    // Digital OTP fields (TOTP-based)
     @Lob
     @Column(name = "digital_pin_hash", columnDefinition = "VARBINARY(255)")
     private byte[] digitalPinHash;
 
     @Lob
-    @Column(name = "digital_public_key", columnDefinition = "TEXT")
-    private String digitalPublicKey;
+    @Column(name = "digital_otp_secret", columnDefinition = "TEXT")
+    private String digitalOtpSecret;  // Base64-encoded TOTP secret
+
+    @Column(name = "digital_otp_salt")
+    private String digitalOtpSalt;  // Salt for PIN hashing
 
     @Column(name = "digital_otp_enabled")
     @Builder.Default

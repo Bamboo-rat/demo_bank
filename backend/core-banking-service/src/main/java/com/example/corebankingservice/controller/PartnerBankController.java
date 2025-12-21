@@ -11,14 +11,35 @@ import org.springframework.web.bind.annotation.*;
  * Controller for partner bank operations
  */
 @RestController
-@RequestMapping("/api/partner-banks")
+@RequestMapping("/api/partner")
 @RequiredArgsConstructor
 public class PartnerBankController {
 
     private final PartnerBankService partnerBankService;
 
     /**
-     * Verify account at partner bank
+     * Verify account at partner bank (GET endpoint for Feign Client)
+     */
+    @GetMapping("/{bankCode}/verify/{accountNumber}")
+    public ResponseEntity<ApiResponse<PartnerBankAccountResponse>> verifyAccountGet(
+            @PathVariable String bankCode,
+            @PathVariable String accountNumber) {
+        
+        PartnerBankAccountResponse response = partnerBankService.verifyAccount(bankCode, accountNumber);
+        
+        if (response.getExists()) {
+            return ResponseEntity.ok(
+                    ApiResponse.success("Account verified successfully", response)
+            );
+        } else {
+            return ResponseEntity.ok(
+                    ApiResponse.error(response.getMessage())
+            );
+        }
+    }
+
+    /**
+     * Verify account at partner bank (POST endpoint)
      */
     @PostMapping("/{bankCode}/verify-account")
     public ResponseEntity<ApiResponse<PartnerBankAccountResponse>> verifyAccount(

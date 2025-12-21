@@ -23,9 +23,14 @@ public interface TransferMapper {
      */
     @Mapping(source = "sourceAccountId", target = "sourceAccountNumber")
     @Mapping(source = "destinationAccountId", target = "destinationAccountNumber")
+    @Mapping(source = "destinationBankCode", target = "destinationBankCode")
+    @Mapping(source = "transferType", target = "transferType")
+    @Mapping(source = "fee", target = "fee")
+    @Mapping(target = "totalAmount", expression = "java(calculateTotalAmount(transaction))")
     @Mapping(source = "transactionDate", target = "createdAt")
     @Mapping(target = "status", expression = "java(transaction.getStatus().name())")
     @Mapping(target = "completedAt", expression = "java(getCompletedAt(transaction))")
+    @Mapping(target = "destinationBankName", ignore = true)
     @Mapping(target = "message", ignore = true)
     @Mapping(target = "digitalOtpRequired", constant = "false")
     TransferResponseDTO toResponseDTO(Transaction transaction);
@@ -38,9 +43,14 @@ public interface TransferMapper {
      */
     @Mapping(source = "transaction.sourceAccountId", target = "sourceAccountNumber")
     @Mapping(source = "transaction.destinationAccountId", target = "destinationAccountNumber")
+    @Mapping(source = "transaction.destinationBankCode", target = "destinationBankCode")
+    @Mapping(source = "transaction.transferType", target = "transferType")
+    @Mapping(source = "transaction.fee", target = "fee")
+    @Mapping(target = "totalAmount", expression = "java(calculateTotalAmount(transaction))")
     @Mapping(source = "transaction.transactionDate", target = "createdAt")
     @Mapping(target = "status", expression = "java(transaction.getStatus().name())")
     @Mapping(target = "completedAt", expression = "java(getCompletedAt(transaction))")
+    @Mapping(target = "destinationBankName", ignore = true)
     @Mapping(source = "message", target = "message")
     @Mapping(target = "digitalOtpRequired", constant = "false")
     TransferResponseDTO toResponseDTOWithMessage(Transaction transaction, String message);
@@ -50,12 +60,37 @@ public interface TransferMapper {
      */
     @Mapping(source = "transaction.sourceAccountId", target = "sourceAccountNumber")
     @Mapping(source = "transaction.destinationAccountId", target = "destinationAccountNumber")
+    @Mapping(source = "transaction.destinationBankCode", target = "destinationBankCode")
+    @Mapping(source = "transaction.transferType", target = "transferType")
+    @Mapping(source = "transaction.fee", target = "fee")
+    @Mapping(target = "totalAmount", expression = "java(calculateTotalAmount(transaction))")
     @Mapping(source = "transaction.transactionDate", target = "createdAt")
     @Mapping(target = "status", expression = "java(transaction.getStatus().name())")
     @Mapping(target = "completedAt", ignore = true)
+    @Mapping(target = "destinationBankName", ignore = true)
     @Mapping(source = "message", target = "message")
     @Mapping(target = "digitalOtpRequired", constant = "true")
     TransferResponseDTO toDigitalOtpResponse(Transaction transaction, String message);
+
+    /**
+     * Helper method to calculate total amount (amount + fee if paid by source)
+     */
+    default java.math.BigDecimal calculateTotalAmount(Transaction transaction) {
+        if (transaction.getAmount() == null) {
+            return java.math.BigDecimal.ZERO;
+        }
+        
+        java.math.BigDecimal fee = transaction.getFee() != null ? transaction.getFee() : java.math.BigDecimal.ZERO;
+        
+        // If fee is paid by source account, add to total
+        if (transaction.getFeePaymentMethod() != null && 
+            transaction.getFeePaymentMethod().name().equals("SOURCE")) {
+            return transaction.getAmount().add(fee);
+        }
+        
+        // Otherwise, total = amount only (fee paid by destination)
+        return transaction.getAmount();
+    }
 
     /**
      * Helper method to determine completed time

@@ -20,9 +20,14 @@ public class TransferResponseDTO {
     private String transactionId;
     private String sourceAccountNumber;
     private String destinationAccountNumber;
+    private String destinationBankCode;
+    private String destinationBankName;
     private BigDecimal amount;
+    private BigDecimal fee;
+    private BigDecimal totalAmount;
     private String description;
     private String status; // PENDING, PROCESSING, COMPLETED, FAILED
+    private String transferType; // INTERNAL or INTERBANK
     private String referenceNumber;
     private LocalDateTime createdAt;
     private LocalDateTime completedAt;

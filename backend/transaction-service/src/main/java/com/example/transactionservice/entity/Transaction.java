@@ -1,5 +1,6 @@
 package com.example.transactionservice.entity;
 
+import com.example.transactionservice.entity.enums.FeePaymentMethod;
 import com.example.transactionservice.entity.enums.TransactionStatus;
 import com.example.transactionservice.entity.enums.TransactionType;
 import jakarta.persistence.*;
@@ -30,6 +31,7 @@ public class Transaction {
 
     private String sourceAccountId;
     private String destinationAccountId;
+    private String destinationBankCode;  // Bank code for interbank transfers
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
@@ -47,4 +49,13 @@ public class Transaction {
     private LocalDateTime transactionDate;
 
     private String createdBy;
+
+    @Column(length = 20)
+    private String transferType;  // "INTERNAL" or "INTERBANK"
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private FeePaymentMethod feePaymentMethod;  // SOURCE or DESTINATION
+
+    private BigDecimal fee;  // Transfer fee amount
 }

@@ -19,7 +19,7 @@ public class DigitalOtpEnrollmentRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String customerId;
-    private String digitalPublicKey; // Base64 encoded public key
-    private byte[] digitalPinHash;   // Hashed PIN using strong KDF (Argon2/BCrypt)
-    private String salt;             // Salt used for PIN hashing
+    private String digitalOtpSecret; // Base64 encoded TOTP secret
+    private String digitalPinHash;   // Base64-encoded hashed PIN (SHA-256 with salt)
+    private String salt;             // Base64 encoded salt used for PIN hashing
 }

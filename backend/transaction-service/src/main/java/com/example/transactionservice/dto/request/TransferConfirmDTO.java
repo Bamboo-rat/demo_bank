@@ -17,8 +17,11 @@ public class TransferConfirmDTO {
     private String transactionId;
 
     @NotBlank(message = "Digital OTP token is required")
-    private String digitalOtpToken;  // Signed token from client
+    private String digitalOtpToken;  // 6-digit TOTP token from client
+
+    @NotBlank(message = "PIN hash is required for Digital OTP validation")
+    private String pinHashCurrent;   // Hashed PIN for verification
 
     @NotNull(message = "Timestamp is required for Digital OTP validation")
-    private Long timestamp;          // Client timestamp for 30s window validation
+    private Long timestamp;          // Client timestamp (time slice * 30000)
 }

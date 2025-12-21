@@ -16,10 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.*;
-import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 @Slf4j
 @Service
@@ -42,9 +43,10 @@ public class DigitalOtpServiceImpl implements DigitalOtpService {
         Customer customer = customerRepository.findById(request.getCustomerId())
             .orElseThrow(() -> new RuntimeException("Customer not found: " + request.getCustomerId()));
 
-        // Store public key and PIN hash
-        customer.setDigitalPublicKey(request.getDigitalPublicKey());
-        customer.setDigitalPinHash(request.getDigitalPinHash());
+        // Store TOTP secret, PIN hash (Base64), and salt
+        customer.setDigitalOtpSecret(request.getDigitalOtpSecret());
+        customer.setDigitalPinHash(Base64.getDecoder().decode(request.getDigitalPinHash()));
+        customer.setDigitalOtpSalt(request.getSalt());
         customer.setDigitalOtpEnabled(true);
         customer.setDigitalOtpFailedAttempts(0);
         customer.setDigitalOtpLockedUntil(null);
@@ -96,29 +98,57 @@ public class DigitalOtpServiceImpl implements DigitalOtpService {
                 MAX_FAILED_ATTEMPTS - customer.getDigitalOtpFailedAttempts(), null);
         }
 
-        // Validate timestamp (30s window)
-        long currentTimestamp = Instant.now().toEpochMilli();
-        if (Math.abs(currentTimestamp - request.getTimestamp()) > TOKEN_VALIDITY_SECONDS * 1000) {
-            log.warn("Token expired. Current: {}, Request: {}", currentTimestamp, request.getTimestamp());
+        // Verify PIN hash first
+        try {
+            if (request.getPinHashCurrent() == null || customer.getDigitalOtpSalt() == null) {
+                log.warn("PIN hash or salt missing for customer: {}", request.getCustomerId());
+                incrementFailedAttempts(customer);
+                return buildErrorResponse("ERROR_MISSING_PIN", 
+                    "PIN verification required", 
+                    MAX_FAILED_ATTEMPTS - customer.getDigitalOtpFailedAttempts(), null);
+            }
+
+            byte[] expectedPinHash = customer.getDigitalPinHash();
+            byte[] providedPinHash = Base64.getDecoder().decode(request.getPinHashCurrent());
+            
+            if (!MessageDigest.isEqual(expectedPinHash, providedPinHash)) {
+                log.warn("Invalid PIN hash for customer: {}", request.getCustomerId());
+                incrementFailedAttempts(customer);
+                return buildErrorResponse("ERROR_INVALID_PIN", 
+                    "Invalid PIN", 
+                    MAX_FAILED_ATTEMPTS - customer.getDigitalOtpFailedAttempts(), null);
+            }
+        } catch (Exception e) {
+            log.error("Error verifying PIN", e);
             incrementFailedAttempts(customer);
-            return buildErrorResponse("ERROR_EXPIRED", 
-                "Digital OTP token has expired", 
+            return buildErrorResponse("ERROR_PIN_VERIFICATION_FAILED", 
+                "PIN verification failed", 
                 MAX_FAILED_ATTEMPTS - customer.getDigitalOtpFailedAttempts(), null);
         }
 
-        // Verify signature
+        // Calculate time slice from timestamp
+        long timeSlice = request.getTimestamp() / 30000L;
+        
+        // Verify TOTP token with ±1 time slice tolerance
         try {
-            boolean signatureValid = verifySignature(
-                customer.getDigitalPublicKey(),
-                buildPayload(request),
-                request.getDigitalOtpToken()
-            );
+            boolean tokenValid = false;
+            for (int offset = -1; offset <= 1; offset++) {
+                String expectedToken = generateTotpToken(
+                    customer.getDigitalOtpSecret(),
+                    buildPayload(request, timeSlice + offset)
+                );
+                
+                if (expectedToken.equals(request.getDigitalOtpToken())) {
+                    tokenValid = true;
+                    break;
+                }
+            }
 
-            if (!signatureValid) {
-                log.warn("Invalid signature for transaction: {}", request.getTransactionId());
+            if (!tokenValid) {
+                log.warn("Invalid TOTP token for transaction: {}", request.getTransactionId());
                 incrementFailedAttempts(customer);
-                return buildErrorResponse("ERROR_INVALID_SIGNATURE", 
-                    "Invalid Digital OTP signature", 
+                return buildErrorResponse("ERROR_INVALID_TOKEN", 
+                    "Invalid Digital OTP token", 
                     MAX_FAILED_ATTEMPTS - customer.getDigitalOtpFailedAttempts(), null);
             }
 
@@ -223,34 +253,46 @@ public class DigitalOtpServiceImpl implements DigitalOtpService {
     }
 
     /**
-     * Build payload string for signature verification
+     * Build payload string for TOTP generation (must match frontend exactly)
      */
-    private String buildPayload(DigitalOtpValidationRequest request) {
-        return String.format("%s|%s|%s|%s|%d",
+    private String buildPayload(DigitalOtpValidationRequest request, long timeSlice) {
+        String bankCode = request.getDestinationBankCode();
+        if (bankCode == null || bankCode.isEmpty()) {
+            bankCode = "KIENLONG";  // Default for internal transfers
+        }
+        
+        return String.format("%s|%s|%s|%s|%s|%d",
             request.getTransactionId(),
             request.getSourceAccountNumber(),
             request.getDestinationAccountNumber(),
+            bankCode,
             request.getAmount().toPlainString(),
-            request.getTimestamp()
+            timeSlice
         );
     }
 
     /**
-     * Verify digital signature using stored public key
+     * Generate TOTP token using HMAC-SHA256 (must match frontend exactly)
      */
-    private boolean verifySignature(String publicKeyBase64, String payload, String signatureBase64) 
-            throws Exception {
-        byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyBase64);
-        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKeyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PublicKey publicKey = keyFactory.generatePublic(keySpec);
-
-        Signature signature = Signature.getInstance("SHA256withRSA");
-        signature.initVerify(publicKey);
-        signature.update(payload.getBytes(StandardCharsets.UTF_8));
-
-        byte[] signatureBytes = Base64.getDecoder().decode(signatureBase64);
-        return signature.verify(signatureBytes);
+    private String generateTotpToken(String secretBase64, String payload) throws Exception {
+        byte[] secretBytes = Base64.getDecoder().decode(secretBase64);
+        byte[] payloadBytes = payload.getBytes(StandardCharsets.UTF_8);
+        
+        // HMAC-SHA256
+        Mac hmac = Mac.getInstance("HmacSHA256");
+        SecretKeySpec keySpec = new SecretKeySpec(secretBytes, "HmacSHA256");
+        hmac.init(keySpec);
+        byte[] hash = hmac.doFinal(payloadBytes);
+        
+        // Convert to 6-digit code
+        int offset = hash[hash.length - 1] & 0x0F;
+        int binary = ((hash[offset] & 0x7F) << 24)
+                   | ((hash[offset + 1] & 0xFF) << 16)
+                   | ((hash[offset + 2] & 0xFF) << 8)
+                   | (hash[offset + 3] & 0xFF);
+        
+        int otp = binary % 1000000;
+        return String.format("%06d", otp);
     }
 
     /**

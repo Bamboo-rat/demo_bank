@@ -4,6 +4,7 @@ import com.example.corebankingservice.dto.request.BalanceOperationRequest;
 import com.example.corebankingservice.dto.request.TransferExecutionRequest;
 import com.example.corebankingservice.dto.request.TransactionRecordRequest;
 import com.example.corebankingservice.dto.response.BalanceOperationResponse;
+import com.example.corebankingservice.dto.response.PartnerBankAccountResponse;
 import com.example.corebankingservice.dto.response.TransferExecutionResponse;
 import com.example.corebankingservice.entity.Account;
 import com.example.corebankingservice.entity.BalanceAuditLog;
@@ -12,10 +13,12 @@ import com.example.corebankingservice.entity.enums.AccountStatus;
 import com.example.corebankingservice.entity.enums.TransactionStatus;
 import com.example.corebankingservice.entity.enums.TransactionType;
 import com.example.corebankingservice.exception.BusinessException;
+import com.example.corebankingservice.exception.ErrorCode;
 import com.example.corebankingservice.exception.ResourceNotFoundException;
 import com.example.corebankingservice.repository.AccountRepository;
 import com.example.corebankingservice.repository.BalanceAuditLogRepository;
 import com.example.corebankingservice.service.BalanceManagementService;
+import com.example.corebankingservice.service.PartnerBankService;
 import com.example.corebankingservice.service.TransactionRecordService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +41,7 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
     private final AccountRepository accountRepository;
     private final BalanceAuditLogRepository auditLogRepository;
     private final TransactionRecordService transactionRecordService;
+    private final PartnerBankService partnerBankService;
     private final MessageSource messageSource;
 
     @Override
@@ -218,9 +222,12 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
     public TransferExecutionResponse executeTransfer(TransferExecutionRequest request) {
         log.info("Executing complete transfer in Core Banking: source={}, dest={}, amount={}, ref={}", 
                 request.getSourceAccountNumber(), 
-                request.getDestinationAccountNumber(), 
+                request.getDestinationAccountNumber(),
                 request.getAmount(), 
                 request.getTransactionReference());
+
+        // Determine if this is an interbank transfer (for now, treat all as internal)
+        boolean isInterbank = false;
 
         // Step 1: Debit from source account
         BalanceOperationRequest debitRequest = BalanceOperationRequest.builder()
@@ -236,7 +243,7 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
                 request.getSourceAccountNumber(), debitResponse.getNewBalance());
 
         try {
-            // Step 2: Credit to destination account
+            // Step 2: Internal transfer - credit to destination account
             BalanceOperationRequest creditRequest = BalanceOperationRequest.builder()
                     .accountNumber(request.getDestinationAccountNumber())
                     .amount(request.getAmount())
@@ -248,7 +255,6 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
             BalanceOperationResponse creditResponse = credit(creditRequest);
             log.info("Credit successful: account={}, new_balance={}", 
                     request.getDestinationAccountNumber(), creditResponse.getNewBalance());
-
             // Step 3: Record transaction in Core Banking Transaction table
             TransactionRecordRequest transactionRecordRequest = TransactionRecordRequest.builder()
                     .sourceAccountId(request.getSourceAccountNumber())
@@ -284,7 +290,7 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
                     .destBalanceAfter(creditResponse.getNewBalance())
                     .destAvailableBalance(creditResponse.getAvailableBalance())
                     .transactionReference(request.getTransactionReference())
-                    .currency(debitResponse.getCurrency())
+                    .currency(debitResponse.getCurrency().name())
                     .executionTime(LocalDateTime.now())
                     .message("Transfer executed successfully and recorded in Core Banking")
                     .build();
@@ -324,7 +330,7 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
             } catch (Exception rollbackException) {
                 log.error("Rollback failed!", rollbackException);
             }
-            throw new BusinessException("Transfer execution failed: " + e.getMessage(), e);
+            throw new BusinessException(ErrorCode.TRANSACTION_FAILED, "Transfer execution failed: " + e.getMessage(), e);
         }
     }
 

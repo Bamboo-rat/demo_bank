@@ -1,8 +1,35 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router'
 import Layout from '~/component/layout/Layout'
+import BeneficiaryList from '~/component/features/beneficiary/BeneficiaryList'
+import { beneficiaryService } from '~/service/beneficiaryService'
+import type { Beneficiary } from '~/type/beneficiary'
 
 const Transfer = () => {
+    const customerId = localStorage.getItem('customerId') || ''
+    const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
+
+    useEffect(() => {
+        if (customerId) {
+            loadBeneficiaries()
+        }
+    }, [customerId])
+
+    const loadBeneficiaries = async () => {
+        if (!customerId) return
+        setLoading(true)
+        setError('')
+        try {
+            const data = await beneficiaryService.getAllBeneficiaries(customerId)
+            setBeneficiaries(data)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Không thể tải danh sách')
+        } finally {
+            setLoading(false)
+        }
+    }
 
     const transferCards: Array<{
         title: string
@@ -39,10 +66,27 @@ const Transfer = () => {
                     })}
                 </div>
 
-                <h4>Danh bạ thụ hưởng</h4>
-                <div className="mt-4">
-                    {/* Nội dung danh bạ thụ hưởng sẽ được hiển thị ở đây */}
-                    <div className="text-center py-8"></div>
+                {/* Beneficiaries Section */}
+                <div className="mt-8">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-semibold text-gray-900">Danh bạ thụ hưởng</h2>
+                        <p className="text-sm text-gray-500">
+                            Lưu tự động sau khi chuyển tiền
+                        </p>
+                    </div>
+
+                    {error && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                            {error}
+                        </div>
+                    )}
+
+                    <BeneficiaryList
+                        beneficiaries={beneficiaries}
+                        onEdit={() => {}}
+                        onDelete={() => {}}
+                        loading={loading}
+                    />
                 </div>
             </div>
         </Layout>

@@ -106,11 +106,11 @@ public class Customer {
 
     @Column(name = "digital_otp_enabled")
     @Builder.Default
-    private boolean digitalOtpEnabled = false;
+    private Boolean digitalOtpEnabled = false;
 
     @Column(name = "digital_otp_failed_attempts")
     @Builder.Default
-    private int digitalOtpFailedAttempts = 0;
+    private Integer digitalOtpFailedAttempts = 0;
 
     @Column(name = "digital_otp_locked_until")
     private LocalDateTime digitalOtpLockedUntil;

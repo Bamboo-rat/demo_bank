@@ -67,7 +67,7 @@ public class DigitalOtpServiceImpl implements DigitalOtpService {
             .orElseThrow(() -> new RuntimeException("Customer not found: " + request.getCustomerId()));
 
         // Check if Digital OTP is enabled
-        if (!customer.isDigitalOtpEnabled()) {
+        if (customer.getDigitalOtpEnabled() == null || !customer.getDigitalOtpEnabled()) {
             return buildErrorResponse("ERROR_NOT_ENROLLED", 
                 "Digital OTP not enrolled for this customer", 0, null);
         }
@@ -191,7 +191,7 @@ public class DigitalOtpServiceImpl implements DigitalOtpService {
                 .toInstant().toEpochMilli() : null;
 
         return DigitalOtpStatusResponse.builder()
-            .enrolled(customer.isDigitalOtpEnabled())
+            .enrolled(Boolean.TRUE.equals(customer.getDigitalOtpEnabled()))
             .locked(locked)
             .enrolledAtTimestamp(enrolledAt)
             .lockedUntilTimestamp(lockedUntil)
@@ -224,7 +224,8 @@ public class DigitalOtpServiceImpl implements DigitalOtpService {
      * Increment failed attempts and lock if threshold exceeded
      */
     private void incrementFailedAttempts(Customer customer) {
-        customer.setDigitalOtpFailedAttempts(customer.getDigitalOtpFailedAttempts() + 1);
+        int currentAttempts = customer.getDigitalOtpFailedAttempts() != null ? customer.getDigitalOtpFailedAttempts() : 0;
+        customer.setDigitalOtpFailedAttempts(currentAttempts + 1);
 
         if (customer.getDigitalOtpFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
             customer.setDigitalOtpLockedUntil(LocalDateTime.now().plusHours(LOCK_DURATION_HOURS));

@@ -248,14 +248,16 @@ public class TransferServiceImpl implements TransferService {
         Transaction transaction = transactionRepository.findById(transactionId)
             .orElseThrow(() -> new TransactionNotFoundException("Transaction not found: " + transactionId));
 
-        ensureAccountOwnership(transaction.getSourceAccountId());
+        AccountInfoDTO accountInfo = getAccountInfoOrThrow(transaction.getSourceAccountId());
+        ensureAccountOwnership(accountInfo);
 
         return transferMapper.toResponseDTO(transaction);
     }
 
     @Override
     public List<TransferResponseDTO> getTransactionHistory(String accountNumber, int page, int size) {
-        ensureAccountOwnership(accountNumber);
+        AccountInfoDTO accountInfo = getAccountInfoOrThrow(accountNumber);
+        ensureAccountOwnership(accountInfo);
 
         Page<Transaction> transactions = transactionRepository.findByAccountId(
             accountNumber, 
@@ -273,7 +275,9 @@ public class TransferServiceImpl implements TransferService {
         Transaction transaction = transactionRepository.findById(transactionId)
             .orElseThrow(() -> new TransactionNotFoundException("Transaction not found: " + transactionId));
 
-        ensureAccountOwnership(transaction.getSourceAccountId());
+        // Verify account exists and user owns it
+        AccountInfoDTO accountInfo = getAccountInfoOrThrow(transaction.getSourceAccountId());
+        ensureAccountOwnership(accountInfo);
 
         if (transaction.getStatus() != TransactionStatus.PENDING) {
             throw new InvalidTransactionException("Can only cancel PENDING transactions");
@@ -343,6 +347,12 @@ public class TransferServiceImpl implements TransferService {
         try {
             // Validate source account (always internal)
             AccountInfoDTO sourceAccountInfo = accountServiceClient.getAccountInfo(sourceAccount);
+            log.info("Received AccountInfoDTO from Dubbo: accountNumber={}, customerId={}, holderName={}, bankCode={}", 
+                    sourceAccountInfo != null ? sourceAccountInfo.getAccountNumber() : null,
+                    sourceAccountInfo != null ? sourceAccountInfo.getCustomerId() : null,
+                    sourceAccountInfo != null ? sourceAccountInfo.getAccountHolderName() : null,
+                    sourceAccountInfo != null ? sourceAccountInfo.getBankCode() : null);
+            
             if (sourceAccountInfo == null) {
                 throw new AccountValidationException(
                     ErrorCode.SOURCE_ACCOUNT_NOT_FOUND,

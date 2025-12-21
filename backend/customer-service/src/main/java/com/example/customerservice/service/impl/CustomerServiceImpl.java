@@ -17,10 +17,11 @@ import com.example.customerservice.dubbo.consumer.AccountSyncConsumer;
 import com.example.customerservice.entity.Customer;
 import com.example.customerservice.entity.enums.KycStatus;
 import com.example.customerservice.entity.enums.RiskLevel;
+import com.example.customerservice.exception.AuthenticationException;
 import com.example.customerservice.exception.CustomerAlreadyExistsException;
 import com.example.customerservice.exception.CustomerNotFoundException;
-import com.example.customerservice.exception.ErrorCode;
 import com.example.customerservice.exception.CustomerRegistrationException;
+import com.example.customerservice.exception.ErrorCode;
 import com.example.customerservice.mapper.AddressMapper;
 import com.example.customerservice.mapper.CustomerMapper;
 import com.example.customerservice.repository.CustomerRepository;
@@ -29,10 +30,13 @@ import com.example.customerservice.service.CustomerService;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -219,9 +223,20 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public CustomerResponse getMyInfo() {
-        // Get user info from JWT token in security context
-        Jwt principal = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String authProviderId = principal.getSubject(); // 'sub' claim is Keycloak user ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (!(authentication instanceof JwtAuthenticationToken jwtAuthenticationToken)) {
+            log.warn("Attempt to access /api/customers/me without JWT authentication context");
+            throw new AuthenticationException(ErrorCode.UNAUTHORIZED, "Bạn cần đăng nhập để xem thông tin khách hàng.");
+        }
+
+        Jwt principal = jwtAuthenticationToken.getToken();
+        String authProviderId = principal.getSubject();
+
+        if (!StringUtils.hasText(authProviderId)) {
+            log.warn("JWT token is missing subject (authProviderId)");
+            throw new AuthenticationException(ErrorCode.INVALID_TOKEN, "Token không hợp lệ. Vui lòng đăng nhập lại.");
+        }
 
         log.debug("Fetching customer info for authProviderId: {}", authProviderId);
 

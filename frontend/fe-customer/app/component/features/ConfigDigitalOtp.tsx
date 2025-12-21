@@ -224,14 +224,6 @@ const ConfigDigitalOtp: React.FC<ConfigDigitalOtpProps> = ({
               </div>
             </div>
 
-            <div className="rounded-lg bg-yellow-50 border border-yellow-200 px-4 py-3 text-sm text-yellow-800">
-              <p className="font-semibold">Lưu ý</p>
-              <ul className="mt-1 list-disc pl-5 space-y-1">
-                <li>PIN được mã hóa hoàn toàn, hệ thống không lưu giá trị gốc.</li>
-                <li>Mỗi lần cập nhật sẽ tạo khóa bí mật mới và vô hiệu hóa mã cũ.</li>
-              </ul>
-            </div>
-
             <div className="flex justify-end gap-3 pt-2">
               {!disableClose && (
                 <button

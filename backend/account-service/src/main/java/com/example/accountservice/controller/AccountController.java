@@ -6,12 +6,12 @@ import com.example.accountservice.dto.response.AccountInfoDTO;
 import com.example.accountservice.dto.response.AccountListResponse;
 import com.example.accountservice.dto.response.AccountResponse;
 import com.example.accountservice.dto.response.CustomerValidationResponse;
+import com.example.accountservice.exception.AuthenticationRequiredException;
+import com.example.accountservice.exception.InvalidCustomerException;
 import com.example.accountservice.service.AccountService;
 import com.example.commonapi.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,9 +23,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+
+import feign.FeignException;
+import org.springframework.util.StringUtils;
 
 /**
  * REST Controller for Account Management Operations (Read-Only)
@@ -230,30 +235,49 @@ public class AccountController {
     private String getAuthenticatedCustomerId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt)) {
-            throw new IllegalStateException("No JWT authentication found");
+        if (!(authentication instanceof JwtAuthenticationToken jwtAuthenticationToken)) {
+            throw new AuthenticationRequiredException("Bạn chưa đăng nhập hoặc phiên đã hết hạn.");
         }
 
-        // Get authProviderId from JWT (Keycloak user ID)
+        Jwt jwt = jwtAuthenticationToken.getToken();
         String authProviderId = jwt.getSubject();
-        if (authProviderId == null || authProviderId.isBlank()) {
-            throw new IllegalStateException("authProviderId (sub claim) not found in JWT");
+
+        if (!StringUtils.hasText(authProviderId)) {
+            throw new AuthenticationRequiredException("Token không hợp lệ: thiếu thông tin định danh.");
         }
 
         try {
-
             ApiResponse<CustomerValidationResponse> response = customerServiceClient.getCustomerByAuthProviderId(authProviderId);
-            
+
+            if (response == null || !response.isSuccess()) {
+                throw new InvalidCustomerException(
+                        "Không thể xác thực thông tin khách hàng. Vui lòng thử đăng nhập lại.",
+                        Map.of("authProviderId", authProviderId)
+                );
+            }
+
             CustomerValidationResponse customerData = response.getData();
-            if (customerData == null) {
-                throw new IllegalStateException("Customer not found for authProviderId: " + authProviderId);
+            if (customerData == null || !StringUtils.hasText(customerData.getCustomerId())) {
+                throw new InvalidCustomerException(
+                        "Không tìm thấy thông tin khách hàng tương ứng với tài khoản đang đăng nhập.",
+                        Map.of("authProviderId", authProviderId)
+                );
             }
 
             return customerData.getCustomerId();
-            
+
+        } catch (InvalidCustomerException ex) {
+            throw ex;
+        } catch (FeignException feignException) {
+            log.error("Failed to call customer-service for authProviderId {}", authProviderId, feignException);
+            throw new InvalidCustomerException(
+                    "Không thể kết nối đến dịch vụ khách hàng. Vui lòng thử lại sau.",
+                    Map.of("status", feignException.status()),
+                    feignException
+            );
         } catch (Exception e) {
-            log.error("Failed to resolve customerId for authProviderId: {}", authProviderId, e);
-            throw new IllegalStateException("Unable to resolve customerId: " + e.getMessage(), e);
+            log.error("Unexpected error while resolving customerId for authProviderId {}", authProviderId, e);
+            throw new InvalidCustomerException("Không thể xác định khách hàng từ thông tin đăng nhập.", e);
         }
     }
 

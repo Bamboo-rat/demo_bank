@@ -50,6 +50,7 @@ public class AccountQueryDubboServiceImpl implements AccountQueryDubboService {
         
         return AccountInfoDTO.builder()
             .accountNumber(serviceDTO.getAccountNumber())
+            .customerId(serviceDTO.getCustomerId())
             .accountHolderName(serviceDTO.getAccountHolderName())
             .accountType(serviceDTO.getAccountType() != null ? serviceDTO.getAccountType().name() : null)
             .status(serviceDTO.getStatus() != null ? serviceDTO.getStatus().name() : null)

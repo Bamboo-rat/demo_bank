@@ -35,7 +35,7 @@ const refreshAccessToken = async () => {
 
   if (!refreshToken) {
     clearStoredTokens()
-    window.location.href = '/login'
+    window.location.href = '/'
     throw new Error('Refresh token is missing')
   }
 
@@ -50,17 +50,19 @@ const refreshAccessToken = async () => {
 
     if (!accessToken || !newRefreshToken) {
       clearStoredTokens()
-      window.location.href = '/login'
+      window.location.href = '/'
       throw new Error('Không thể làm mới phiên đăng nhập')
     }
 
     localStorage.setItem('access_token', accessToken)
     localStorage.setItem('refresh_token', newRefreshToken)
+    localStorage.setItem('accessToken', accessToken)
+    localStorage.setItem('refreshToken', newRefreshToken)
 
     return accessToken as string
   } catch (error) {
     clearStoredTokens()
-    window.location.href = '/login'
+    window.location.href = '/'
     throw error
   }
 }

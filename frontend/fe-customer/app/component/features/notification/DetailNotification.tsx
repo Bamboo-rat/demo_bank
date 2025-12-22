@@ -170,66 +170,21 @@ const DetailNotification: React.FC<DetailNotificationProps> = ({ notification, i
               </p>
             </div>
 
-            {/* Metadata Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Created At */}
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="material-icons-round text-blue-600 text-lg">schedule</span>
-                  <span className="text-sm font-semibold text-blue-900">Thời gian tạo</span>
-                </div>
-                <p className="text-blue-700 font-medium">{formatDateTime(notification.createdAt)}</p>
+            {/* Time Information */}
+            <div className="flex gap-4 text-sm">
+              <div className="flex items-center gap-2 text-gray-600">
+                <span className="material-icons-round text-base">schedule</span>
+                <span>{formatDateTime(notification.createdAt)}</span>
               </div>
-
-              {/* Delivered At */}
-              <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="material-icons-round text-green-600 text-lg">done_all</span>
-                  <span className="text-sm font-semibold text-green-900">Thời gian gửi</span>
-                </div>
-                <p className="text-green-700 font-medium">{formatDateTime(notification.deliveredAt)}</p>
-              </div>
-
-              {/* Read Status */}
-              <div className={`${notification.isRead ? 'bg-purple-50 border-purple-100' : 'bg-orange-50 border-orange-100'} rounded-lg p-4 border`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`material-icons-round ${notification.isRead ? 'text-purple-600' : 'text-orange-600'} text-lg`}>
-                    {notification.isRead ? 'mark_email_read' : 'mark_email_unread'}
-                  </span>
-                  <span className={`text-sm font-semibold ${notification.isRead ? 'text-purple-900' : 'text-orange-900'}`}>
-                    Trạng thái
-                  </span>
-                </div>
-                <p className={`font-medium ${notification.isRead ? 'text-purple-700' : 'text-orange-700'}`}>
-                  {notification.isRead ? 'Đã đọc' : 'Chưa đọc'}
-                </p>
-                {notification.isRead && notification.readAt && (
-                  <p className="text-sm text-purple-600 mt-1">
-                    {formatDateTime(notification.readAt)}
-                  </p>
-                )}
-              </div>
-
-              {/* Reference Info */}
-              {notification.referenceType && notification.referenceId && (
-                <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-100">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="material-icons-round text-indigo-600 text-lg">link</span>
-                    <span className="text-sm font-semibold text-indigo-900">Tham chiếu</span>
+              {notification.deliveredAt && (
+                <>
+                  <span className="text-gray-300">•</span>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <span className="material-icons-round text-base">done_all</span>
+                    <span>{formatDateTime(notification.deliveredAt)}</span>
                   </div>
-                  <p className="text-indigo-700 font-medium">
-                    {notification.referenceType}: #{notification.referenceId}
-                  </p>
-                </div>
+                </>
               )}
-            </div>
-
-            {/* ID Section */}
-            <div className="border-t border-gray-200 pt-4">
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <span className="material-icons-round text-base">tag</span>
-                <span className="font-mono">{notification.id}</span>
-              </div>
             </div>
           </div>
 

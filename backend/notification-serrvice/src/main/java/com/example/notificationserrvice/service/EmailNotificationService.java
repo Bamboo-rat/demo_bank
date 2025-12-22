@@ -23,4 +23,13 @@ public interface EmailNotificationService {
      * @param htmlContent Nội dung HTML
      */
     void sendSimpleEmail(String toEmail, String toName, String subject, String htmlContent);
+    
+    /**
+     * Gửi email với nội dung text thuần
+     * 
+     * @param toEmail Email người nhận
+     * @param subject Tiêu đề email
+     * @param textContent Nội dung text
+     */
+    void sendTextEmail(String toEmail, String subject, String textContent);
 }

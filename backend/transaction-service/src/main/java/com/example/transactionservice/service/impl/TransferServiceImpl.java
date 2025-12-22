@@ -26,7 +26,7 @@ import com.example.transactionservice.exception.*;
 import com.example.transactionservice.mapper.TransferMapper;
 import com.example.transactionservice.repository.TransactionRepository;
 import com.example.transactionservice.service.TransferService;
-import com.example.transactionservice.utils.security.SecurityUtils;
+import com.example.transactionservice.util.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

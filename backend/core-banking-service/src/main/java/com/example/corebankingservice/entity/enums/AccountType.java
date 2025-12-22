@@ -28,6 +28,13 @@ public enum AccountType {
         BigDecimal.ZERO,               // No minimum balance
         new BigDecimal("1000000000"), // 1B VND daily limit
         false                          // No free transfers
+    ),
+    LOAN(
+        "account.type.loan.name",
+        "account.type.loan.description",
+        BigDecimal.ZERO,               // No minimum balance
+        BigDecimal.ZERO,               // No daily limit for loan account
+        false                          // No free transfers
     );
 
     private final String nameMessageCode;

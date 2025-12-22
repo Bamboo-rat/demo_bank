@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import menuData from './menu.json'
+import menuData from '../features/data/menu.json'
 import { Link } from 'react-router'
 import logo from '/app/assets/images/logo-kienlongbank.png'
 

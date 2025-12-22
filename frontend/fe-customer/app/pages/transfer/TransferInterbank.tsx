@@ -136,7 +136,7 @@ const TransferInterbank = () => {
   const loadBanks = async () => {
     try {
       const bankList = await transactionService.getAllBanks()
-      setBanks(bankList.filter(b => b.isActive))
+      setBanks(bankList)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Không thể tải danh sách ngân hàng')
     }

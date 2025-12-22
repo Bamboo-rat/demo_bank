@@ -101,6 +101,48 @@ public class GlobalExceptionHandler {
         return handleBaseException(ex, request);
     }
 
+    @ExceptionHandler(SavingsAccountNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleSavingsAccountNotFoundException(
+            SavingsAccountNotFoundException ex, WebRequest request) {
+        String traceId = UUID.randomUUID().toString();
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorCode(ex.getErrorCode())
+                .message(ex.getMessage())
+                .userMessage("Không tìm thấy sổ tiết kiệm")
+                .path(request.getDescription(false).replace("uri=", ""))
+                .method(extractMethod(request))
+                .timestamp(LocalDateTime.now())
+                .traceId(traceId)
+                .stackTrace(shouldIncludeStackTrace() ? getStackTrace(ex) : null)
+                .build();
+
+        log.error("SavingsAccountNotFoundException [{}]: {}", traceId, ex.getMessage(), ex);
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(InvalidSavingsOperationException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidSavingsOperationException(
+            InvalidSavingsOperationException ex, WebRequest request) {
+        String traceId = UUID.randomUUID().toString();
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorCode(ex.getErrorCode())
+                .message(ex.getMessage())
+                .userMessage("Thao tác tiết kiệm không hợp lệ")
+                .path(request.getDescription(false).replace("uri=", ""))
+                .method(extractMethod(request))
+                .timestamp(LocalDateTime.now())
+                .traceId(traceId)
+                .stackTrace(shouldIncludeStackTrace() ? getStackTrace(ex) : null)
+                .build();
+
+        log.error("InvalidSavingsOperationException [{}]: {} - {}", traceId, ex.getErrorCode(), ex.getMessage(), ex);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
     @ExceptionHandler(KYCNotCompletedException.class)
     public ResponseEntity<ErrorResponse> handleKYCNotCompletedException(KYCNotCompletedException ex, WebRequest request) {
         return handleBaseException(ex, request);

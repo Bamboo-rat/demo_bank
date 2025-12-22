@@ -13,6 +13,16 @@ export default [
     route("accounts/list", "routes/accountList.tsx"),
     route("transactions", "routes/transactions.tsx"),
     // route("accounts/detail/:accountNumber", "routes/accountDetail.tsx"),
-    route("notifications", "routes/notification.tsx")
+    route("notifications", "routes/notification.tsx"),
+    
+    // Savings routes
+    route("saving/books", "routes/savingsBooks.tsx"),
+    route("saving/open", "routes/savingsOpen.tsx"),
+    route("saving/close", "routes/savingsClose.tsx"),
+    
+    // Loan routes
+    route("loan/my-loans", "routes/loanMyLoans.tsx"),
+    route("loan/pay", "routes/loanPay.tsx"),
+    route("loan/apply", "routes/loanApply.tsx")
 
 ] satisfies RouteConfig;

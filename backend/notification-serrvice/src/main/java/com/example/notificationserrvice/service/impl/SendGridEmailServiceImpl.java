@@ -320,4 +320,41 @@ public class SendGridEmailServiceImpl implements EmailNotificationService {
         
         sendEmail(toEmail, toName, subject, htmlContent);
     }
+    
+    @Override
+    public void sendTextEmail(String toEmail, String subject, String textContent) {
+        if (!emailEnabled) {
+            log.info("Email notification is disabled");
+            return;
+        }
+        
+        try {
+            Email from = new Email(
+                sendGridProperties.getFrom().getEmail(), 
+                sendGridProperties.getFrom().getName()
+            );
+            Email to = new Email(toEmail);
+            Content content = new Content("text/plain", textContent);
+            
+            Mail mail = new Mail(from, subject, to, content);
+
+            Request request = new Request();
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+
+            Response response = sendGrid.api(request);
+            
+            if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
+                log.info("[EMAIL-SENT] Email sent successfully to {} - Status: {}", toEmail, response.getStatusCode());
+            } else {
+                log.error("[EMAIL-FAILED] Failed to send email to {} - Status: {}, Body: {}", 
+                         toEmail, response.getStatusCode(), response.getBody());
+            }
+            
+        } catch (IOException e) {
+            log.error("[EMAIL-ERROR] Error sending email to {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Failed to send email", e);
+        }
+    }
 }

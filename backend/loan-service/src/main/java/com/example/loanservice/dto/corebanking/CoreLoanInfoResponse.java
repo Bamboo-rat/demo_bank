@@ -1,0 +1,33 @@
+package com.example.loanservice.dto.corebanking;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class CoreLoanInfoResponse {
+    private String loanId;
+    private String loanServiceRef;
+    private String cifId;
+    private String accountId;
+    private BigDecimal disbursedAmount;
+    private BigDecimal outstandingPrincipal;
+    private BigDecimal totalInterestPaid;
+    private BigDecimal totalPenaltyPaid;
+    private BigDecimal interestRate;
+    private Integer termMonths;
+    private LocalDate disbursementDate;
+    private LocalDate maturityDate;
+    private String status;
+    private String notes;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+}

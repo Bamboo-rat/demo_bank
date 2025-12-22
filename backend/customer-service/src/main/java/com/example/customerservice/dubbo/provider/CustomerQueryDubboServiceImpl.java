@@ -3,6 +3,7 @@ package com.example.customerservice.dubbo.provider;
 import com.example.commonapi.dto.customer.CustomerBasicInfo;
 import com.example.commonapi.dubbo.CustomerQueryDubboService;
 import com.example.customerservice.entity.Customer;
+import com.example.customerservice.mapper.CustomerMapper;
 import com.example.customerservice.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ import org.apache.dubbo.config.annotation.DubboService;
 public class CustomerQueryDubboServiceImpl implements CustomerQueryDubboService {
 
     private final CustomerRepository customerRepository;
+    private final CustomerMapper customerMapper;
 
     @Override
     public CustomerBasicInfo getCustomerBasicInfo(String customerId) {
@@ -85,19 +87,7 @@ public class CustomerQueryDubboServiceImpl implements CustomerQueryDubboService 
         }
     }
 
-    /**
-     * Map Customer entity to CustomerBasicInfo DTO
-     */
     private CustomerBasicInfo mapToBasicInfo(Customer customer) {
-        return CustomerBasicInfo.builder()
-                .customerId(customer.getCustomerId())
-                .authProviderId(customer.getAuthProviderId())
-                .fullName(customer.getFullName())
-                .email(customer.getEmail())
-                .phoneNumber(customer.getPhoneNumber())
-                .nationalId(customer.getNationalId())
-                .customerStatus(customer.getKycStatus().name())
-                .cifNumber(customer.getCifNumber())
-                .build();
+        return customerMapper.toBasicInfo(customer);
     }
 }

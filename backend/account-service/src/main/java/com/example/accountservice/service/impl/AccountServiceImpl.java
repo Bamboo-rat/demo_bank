@@ -8,6 +8,7 @@ import com.example.accountservice.dto.response.BalanceResponse;
 import com.example.accountservice.entity.*;
 import com.example.accountservice.entity.enums.AccountStatus;
 import com.example.accountservice.exception.*;
+import com.example.accountservice.mapper.AccountInfoMapper;
 import com.example.accountservice.mapper.AccountMapper;
 import com.example.accountservice.repository.AccountRepository;
 import com.example.accountservice.service.AccountService;
@@ -31,6 +32,7 @@ public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
     private final AccountMapper accountMapper;
+    private final AccountInfoMapper accountInfoMapper;
     private final CoreBankingServiceClient coreBankingServiceClient;
     
     @DubboReference(version = "1.0.0", group = "banking-services", check = false, timeout = 5000)
@@ -178,17 +180,11 @@ public class AccountServiceImpl implements AccountService {
         Account account = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new AccountNotFoundException("Account not found: " + accountNumber));
 
-        return AccountInfoDTO.builder()
-                .accountNumber(account.getAccountNumber())
-                .customerId(account.getCustomerId())
-                .accountHolderName(getAccountHolderName(account)) 
-                .accountType(account.getAccountType())
-                .status(account.getStatus())
-                .bankName("Kiên Long Bank")
-                .bankCode("KLB") 
-                .cifNumber(account.getCifNumber())
-                .isActive(account.getStatus() == AccountStatus.ACTIVE)
-                .build();
+  
+        AccountInfoDTO accountInfo = accountInfoMapper.toAccountInfoDTO(account);
+        accountInfo.setAccountHolderName(getAccountHolderName(account));
+        
+        return accountInfo;
     }
 
     /**

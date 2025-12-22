@@ -27,6 +27,7 @@ public class AccountNumberGeneratorImpl implements AccountNumberGenerator {
         TYPE_DIGIT.put(AccountType.SAVINGS, 1);
         TYPE_DIGIT.put(AccountType.CHECKING, 2);
         TYPE_DIGIT.put(AccountType.CREDIT, 3);
+        TYPE_DIGIT.put(AccountType.LOAN, 4);
     }
 
     private final int sequenceLength;

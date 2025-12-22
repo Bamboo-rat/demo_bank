@@ -29,4 +29,7 @@ public interface CustomerMapper {
     Customer toEntity(CustomerRegisterRequest dto);
 
     CustomerResponse toResponse(Customer entity);
+
+    @Mapping(target = "customerStatus", expression = "java(entity.getKycStatus().name())")
+    com.example.commonapi.dto.customer.CustomerBasicInfo toBasicInfo(Customer entity);
 }

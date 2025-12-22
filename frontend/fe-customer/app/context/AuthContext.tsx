@@ -14,8 +14,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    const storedAccessToken = localStorage.getItem('accessToken')
-    const storedRefreshToken = localStorage.getItem('refreshToken')
+    const storedAccessToken = localStorage.getItem('access_token')
+    const storedRefreshToken = localStorage.getItem('refresh_token')
 
     if (storedAccessToken) {
       setAccessToken(storedAccessToken)
@@ -48,8 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRefreshToken(newRefreshToken)
     
     if (typeof window !== 'undefined') {
-      localStorage.setItem('accessToken', newAccessToken)
-      localStorage.setItem('refreshToken', newRefreshToken)
+      localStorage.setItem('access_token', newAccessToken)
+      localStorage.setItem('refresh_token', newRefreshToken)
     }
     
     loadCustomerProfile()
@@ -61,8 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCustomerProfile(null)
     
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
       localStorage.removeItem('customerId')
     }
   }

@@ -386,7 +386,7 @@ const TransferInternal = () => {
     }
     
     if (!beneficiaryToSave) {
-      console.error('❌ Missing beneficiaryToSave')
+      console.error('Missing beneficiaryToSave')
       toast.error('Lỗi: Thông tin tài khoản đích bị mất. Vui lòng thử lại.')
       return
     }

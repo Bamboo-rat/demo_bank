@@ -1,4 +1,4 @@
-package com.example.transactionservice.utils.security;
+package com.example.transactionservice.util.security;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;

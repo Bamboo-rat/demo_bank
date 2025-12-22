@@ -34,6 +34,7 @@
         <module>core-banking-service</module>
         <module>transaction-service</module>
         <module>notification-serrvice</module>
+        <module>loan-service</module>
     </modules>
 
     <dependencyManagement>

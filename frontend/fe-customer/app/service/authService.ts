@@ -49,6 +49,8 @@ export const authService = {
       // Store tokens
       localStorage.setItem('access_token', data.data.access_token)
       localStorage.setItem('refresh_token', data.data.refresh_token)
+      localStorage.setItem('accessToken', data.data.access_token)
+      localStorage.setItem('refreshToken', data.data.refresh_token)
       
       return data.data
     } catch (error) {
@@ -64,6 +66,9 @@ export const authService = {
     } finally {
       localStorage.removeItem('access_token')
       localStorage.removeItem('refresh_token')
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('customerId')
     }
   },
 

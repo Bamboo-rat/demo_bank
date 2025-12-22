@@ -10,6 +10,8 @@ import SaveBeneficiaryForm from '~/component/features/beneficiary/SaveBeneficiar
 import { digitalOtpService, type DigitalOtpStatus } from '~/service/digitalOtpService'
 import type { Beneficiary } from '~/type/beneficiary'
 import { beneficiaryService } from '~/service/beneficiaryService'
+import { useAuth } from '~/context/AuthContext'
+import { useToast } from '~/context/ToastContext'
 import {
   computeTotpToken,
   getCurrentTimeSlice,
@@ -39,17 +41,11 @@ const buildDigitalOtpPayload = (transaction: TransferResponse, timeSlice: number
 
 const TransferInternal = () => {
   const navigate = useNavigate()
-  const [customerId, setCustomerId] = useState('')
+  const { customerId, customerProfile, loading: authLoading } = useAuth()
+  const toast = useToast()
   const [currentStep, setCurrentStep] = useState<TransferStep['step']>('input')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
-
-  // Initialize customerId from localStorage on client-side only
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCustomerId(localStorage.getItem('customerId') || '')
-    }
-  }, [])
   
   // Form data
   const [sourceAccount, setSourceAccount] = useState<AccountSummary | null>(null)
@@ -373,11 +369,8 @@ const TransferInternal = () => {
   }
 
   const handleSaveBeneficiary = async (nickname: string, note: string) => {
-    const currentCustomerId = customerId || localStorage.getItem('customerId')
     console.log('🔍 DEBUG handleSaveBeneficiary:', {
       customerId,
-      'localStorage.customerId': localStorage.getItem('customerId'),
-      currentCustomerId,
       beneficiaryToSave,
       'beneficiaryToSave type': typeof beneficiaryToSave,
       'beneficiaryToSave keys': beneficiaryToSave ? Object.keys(beneficiaryToSave) : null,
@@ -385,21 +378,21 @@ const TransferInternal = () => {
       note
     })
     
-    if (!currentCustomerId) {
+    if (!customerId) {
       console.error('❌ Missing customerId')
-      alert('Lỗi: Chưa đăng nhập hoặc phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.')
+      toast.error('Lỗi: Chưa đăng nhập hoặc phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.')
       return
     }
     
     if (!beneficiaryToSave) {
       console.error('❌ Missing beneficiaryToSave')
-      alert('Lỗi: Thông tin tài khoản đích bị mất. Vui lòng thử lại.')
+      toast.error('Lỗi: Thông tin tài khoản đích bị mất. Vui lòng thử lại.')
       return
     }
 
     setSaveBeneficiaryLoading(true)
     try {
-      await beneficiaryService.createBeneficiary(currentCustomerId, {
+      await beneficiaryService.createBeneficiary(customerId, {
         beneficiaryAccountNumber: beneficiaryToSave.accountNumber,
         beneficiaryName: beneficiaryToSave.accountHolderName,
         bankCode: beneficiaryToSave.bankCode || 'KIENLONG',
@@ -409,7 +402,7 @@ const TransferInternal = () => {
       })
       setShowSaveBeneficiaryModal(false)
       setBeneficiaryToSave(null)
-      alert('Đã lưu vào danh bạ thụ hưởng thành công!')
+      toast.success('Đã lưu vào danh bạ thụ hưởng thành công!')
     } catch (err) {
       console.error('Error saving beneficiary:', err)
       setError(err instanceof Error ? err.message : 'Không thể lưu vào danh bạ')
@@ -701,10 +694,6 @@ const TransferInternal = () => {
             <h2 className="text-xl font-semibold mb-4">Xác thực giao dịch</h2>
             
             <div className="mb-6 space-y-4">
-              <p className="text-gray-600">
-                Nhập PIN Digital OTP để mở khóa mã 6 số tự động thay đổi mỗi 30 giây. Mã này sẽ được gửi kèm theo giao dịch để xác nhận với hệ thống.
-              </p>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   PIN Digital OTP <span className="text-red-500">*</span>

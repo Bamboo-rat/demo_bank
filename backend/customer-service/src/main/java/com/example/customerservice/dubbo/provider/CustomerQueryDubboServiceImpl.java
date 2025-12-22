@@ -63,6 +63,28 @@ public class CustomerQueryDubboServiceImpl implements CustomerQueryDubboService 
         }
     }
 
+    @Override
+    public CustomerBasicInfo getCustomerBasicInfoByAuthProviderId(String authProviderId) {
+        log.info("Dubbo call: getCustomerBasicInfoByAuthProviderId for authProviderId: {}", authProviderId);
+        
+        if (authProviderId == null || authProviderId.isBlank()) {
+            log.warn("Invalid authProviderId: {}", authProviderId);
+            return null;
+        }
+
+        try {
+            return customerRepository.findByAuthProviderId(authProviderId)
+                    .map(this::mapToBasicInfo)
+                    .orElseGet(() -> {
+                        log.warn("Customer not found for authProviderId: {}", authProviderId);
+                        return null;
+                    });
+        } catch (Exception e) {
+            log.error("Error fetching customer info for authProviderId: {}", authProviderId, e);
+            return null;
+        }
+    }
+
     /**
      * Map Customer entity to CustomerBasicInfo DTO
      */

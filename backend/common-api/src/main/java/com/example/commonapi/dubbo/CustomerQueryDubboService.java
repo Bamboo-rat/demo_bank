@@ -17,4 +17,11 @@ public interface CustomerQueryDubboService {
      * @return CustomerBasicInfo or null if not found
      */
     CustomerBasicInfo getCustomerBasicInfoByCif(String cifNumber);
+    
+    /**
+     * Get customer basic info by auth provider ID (Keycloak ID)
+     * @param authProviderId Keycloak user ID
+     * @return CustomerBasicInfo or null if not found
+     */
+    CustomerBasicInfo getCustomerBasicInfoByAuthProviderId(String authProviderId);
 }

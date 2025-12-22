@@ -4,9 +4,10 @@ import Layout from '~/component/layout/Layout'
 import BeneficiaryList from '~/component/features/beneficiary/BeneficiaryList'
 import { beneficiaryService } from '~/service/beneficiaryService'
 import type { Beneficiary } from '~/type/beneficiary'
+import { useAuth } from '~/context/AuthContext'
 
 const Transfer = () => {
-    const customerId = localStorage.getItem('customerId') || ''
+    const { customerId } = useAuth()
     const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
@@ -83,7 +84,6 @@ const Transfer = () => {
 
                     <BeneficiaryList
                         beneficiaries={beneficiaries}
-                        onEdit={() => {}}
                         onDelete={() => {}}
                         loading={loading}
                     />

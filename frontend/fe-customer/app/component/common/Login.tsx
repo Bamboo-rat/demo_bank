@@ -1,27 +1,31 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { authService } from '~/service/authService'
+import { useAuth } from '~/context/AuthContext'
+import { useToast } from '~/context/ToastContext'
 
 const Login = () => {
   const navigate = useNavigate()
+  const { login: authLogin } = useAuth()
+  const { error: showError, success: showSuccess } = useToast()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
     setLoading(true)
 
     try {
-      await authService.login({ username, password })
+      const tokens = await authService.login({ username, password })
+      authLogin(tokens.access_token, tokens.refresh_token)
+      showSuccess('Đăng nhập thành công!')
       // Redirect to dashboard on successful login
       navigate('/dashboard')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đăng nhập thất bại')
+      showError(err instanceof Error ? err.message : 'Đăng nhập thất bại')
     } finally {
       setLoading(false)
     }
@@ -46,14 +50,6 @@ const Login = () => {
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl border border-blue-100 p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start gap-2">
-                <span className="material-icons-round text-red-500 text-xl">error</span>
-                <p className="text-sm">{error}</p>
-              </div>
-            )}
-
             {/* Username Field */}
             <div>
               <label htmlFor="username" className="block text-sm font-semibold text-dark-blue mb-2">

@@ -1,6 +1,7 @@
 package com.example.notificationserrvice.controller;
 
 import com.example.commonapi.dto.ApiResponse;
+import com.example.notificationserrvice.client.CustomerServiceClient;
 import com.example.notificationserrvice.dto.response.NotificationPageResponse;
 import com.example.notificationserrvice.dto.response.NotificationResponse;
 import com.example.notificationserrvice.dto.response.UnreadCountResponse;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final CustomerServiceClient customerServiceClient;
 
     @Operation(
             summary = "Lấy danh sách thông báo",
@@ -144,14 +146,21 @@ public class NotificationController {
     private String getCurrentCustomerId() {
         Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String customerIdStr = jwt.getClaim("customerId");
-        if (customerIdStr == null) {
-            customerIdStr = jwt.getSubject();
+        
+        if (customerIdStr != null) {
+            log.debug("Found customerId in JWT claim: {}", customerIdStr);
+            return customerIdStr;
         }
         
-        if (customerIdStr == null) {
-            throw new RuntimeException("Customer ID not found in token");
+        // If customerId not in JWT, get authProviderId and call customer service via Dubbo
+        String authProviderId = jwt.getSubject();
+        log.debug("customerId not found in JWT, calling customer service via Dubbo for authProviderId: {}", authProviderId);
+        
+        String customerId = customerServiceClient.getCustomerIdByAuthProviderId(authProviderId);
+        if (customerId == null) {
+            throw new RuntimeException("Customer not found for authProviderId: " + authProviderId);
         }
         
-        return customerIdStr;
+        return customerId;
     }
 }

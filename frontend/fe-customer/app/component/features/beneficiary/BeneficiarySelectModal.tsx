@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { Beneficiary } from '~/type/beneficiary'
 import { beneficiaryService } from '~/service/beneficiaryService'
+import { useAuth } from '~/context/AuthContext'
 
 interface BeneficiarySelectModalProps {
   open: boolean
@@ -15,22 +16,21 @@ export default function BeneficiarySelectModal({
   onSelect, 
   bankCode 
 }: BeneficiarySelectModalProps) {
-  const [customerId, setCustomerId] = useState('')
+  const { customerId } = useAuth()
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
   const [filteredBeneficiaries, setFilteredBeneficiaries] = useState<Beneficiary[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCustomerId(localStorage.getItem('customerId') || '')
-    }
-  }, [])
-
-  useEffect(() => {
-    if (open && customerId) {
-      loadBeneficiaries()
+    if (open) {
+      if (customerId) {
+        loadBeneficiaries()
+      } else {
+        setLoading(false)
+        setError('Chưa đăng nhập hoặc phiên làm việc đã hết hạn')
+      }
       setSearchTerm('')
     }
   }, [open, customerId])

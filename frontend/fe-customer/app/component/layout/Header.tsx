@@ -1,36 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router'
 import '~/assets/css/header.css'
-import { customerService, type CustomerProfile } from '~/service/customerService'
 import { authService } from '~/service/authService'
 import { notificationService } from '~/service/notificationService'
 import DropDownNotification from '~/component/features/notification/DropDownNotification'
+import { useAuth } from '~/context/AuthContext'
 
 const Header = () => {
   const navigate = useNavigate()
+  const { customerProfile: profile, loading: profileLoading } = useAuth()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const notificationRef = useRef<HTMLDivElement>(null)
-  const [profile, setProfile] = useState<CustomerProfile | null>(null)
-  const [profileLoading, setProfileLoading] = useState(true)
   const [unreadCount, setUnreadCount] = useState(0)
-
-  // Fetch customer profile
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const data = await customerService.getMyProfile()
-        setProfile(data)
-      } catch (error) {
-        console.error('Failed to fetch profile:', error)
-      } finally {
-        setProfileLoading(false)
-      }
-    }
-
-    void fetchProfile()
-  }, [])
 
   // Fetch unread notification count
   useEffect(() => {

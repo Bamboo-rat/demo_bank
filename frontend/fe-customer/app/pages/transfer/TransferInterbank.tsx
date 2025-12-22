@@ -10,6 +10,7 @@ import BeneficiarySelectModal from '~/component/features/beneficiary/Beneficiary
 import SaveBeneficiaryForm from '~/component/features/beneficiary/SaveBeneficiaryForm'
 import type { Beneficiary } from '~/type/beneficiary'
 import { beneficiaryService } from '~/service/beneficiaryService'
+import { useAuth } from '~/context/AuthContext'
 import {
   computeTotpToken,
   getCurrentTimeSlice,
@@ -39,17 +40,10 @@ const buildDigitalOtpPayload = (transaction: TransferResponse, timeSlice: number
 
 const TransferInterbank = () => {
   const navigate = useNavigate()
-  const [customerId, setCustomerId] = useState('')
+  const { customerId } = useAuth()
   const [currentStep, setCurrentStep] = useState<TransferStep['step']>('input')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
-
-  // Initialize customerId from localStorage on client-side only
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCustomerId(localStorage.getItem('customerId') || '')
-    }
-  }, [])
   
   // Form data
   const [sourceAccount, setSourceAccount] = useState<AccountSummary | null>(null)

@@ -1,31 +1,6 @@
 import { isAxiosError } from 'axios'
 import axiosCustomer from '~/config/axiosCustomer'
-
-interface Address {
-  street: string
-  ward: string
-  district: string
-  city: string
-  country: string
-}
-
-interface CustomerProfile {
-  customerId: string
-  fullName: string
-  phoneNumber: string
-  email: string
-  dateOfBirth?: string
-  gender?: string
-  nationality?: string
-  nationalId?: string
-  cifNumber?: string
-  status?: string
-  kycStatus?: string
-  riskLevel?: string
-  createdAt?: string
-  permanentAddress?: Address
-  temporaryAddress?: Address
-}
+import type { CustomerProfile } from '~/type/auth'
 
 interface ApiResponse<T> {
   success: boolean

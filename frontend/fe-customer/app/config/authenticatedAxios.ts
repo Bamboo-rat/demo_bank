@@ -110,7 +110,11 @@ export const createAuthenticatedAxios = (
       const { response, config } = error
       const originalRequest = config as RetryableRequestConfig
 
-      if (response?.status === 401 && !originalRequest._retry) {
+      const isPublicEndpoint = publicEndpoints.some((endpoint) =>
+        originalRequest.url?.includes(endpoint)
+      )
+
+      if (response?.status === 401 && !originalRequest._retry && !isPublicEndpoint) {
         if (isRefreshing) {
           return new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject })

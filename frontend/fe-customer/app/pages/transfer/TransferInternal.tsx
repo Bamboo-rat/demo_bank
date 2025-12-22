@@ -32,7 +32,7 @@ const buildDigitalOtpPayload = (transaction: TransferResponse, timeSlice: number
     transaction.sourceAccountNumber,
     transaction.destinationAccountNumber,
     destinationBank,
-    transaction.amount.toString(),
+    transaction.amount.toFixed(2),
     timeSlice.toString()
   ].join('|')
 }
@@ -64,6 +64,7 @@ const TransferInternal = () => {
   const [isExistingBeneficiary, setIsExistingBeneficiary] = useState(false)
   const [saveBeneficiaryLoading, setSaveBeneficiaryLoading] = useState(false)
   const [showBeneficiaryModal, setShowBeneficiaryModal] = useState(false)
+  const [beneficiaryToSave, setBeneficiaryToSave] = useState<AccountInfo | null>(null)
   
   // Transaction data
   const [transactionData, setTransactionData] = useState<TransferResponse | null>(null)
@@ -372,21 +373,45 @@ const TransferInternal = () => {
   }
 
   const handleSaveBeneficiary = async (nickname: string, note: string) => {
-    if (!customerId || !destinationAccountInfo) return
+    const currentCustomerId = customerId || localStorage.getItem('customerId')
+    console.log('🔍 DEBUG handleSaveBeneficiary:', {
+      customerId,
+      'localStorage.customerId': localStorage.getItem('customerId'),
+      currentCustomerId,
+      beneficiaryToSave,
+      'beneficiaryToSave type': typeof beneficiaryToSave,
+      'beneficiaryToSave keys': beneficiaryToSave ? Object.keys(beneficiaryToSave) : null,
+      nickname,
+      note
+    })
+    
+    if (!currentCustomerId) {
+      console.error('❌ Missing customerId')
+      alert('Lỗi: Chưa đăng nhập hoặc phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.')
+      return
+    }
+    
+    if (!beneficiaryToSave) {
+      console.error('❌ Missing beneficiaryToSave')
+      alert('Lỗi: Thông tin tài khoản đích bị mất. Vui lòng thử lại.')
+      return
+    }
 
     setSaveBeneficiaryLoading(true)
     try {
-      await beneficiaryService.createBeneficiary(customerId, {
-        beneficiaryAccountNumber: destinationAccountInfo.accountNumber,
-        beneficiaryName: destinationAccountInfo.accountHolderName,
-        bankCode: destinationAccountInfo.bankCode || 'KIENLONG',
-        bankName: destinationAccountInfo.bankName || 'KienLongBank',
+      await beneficiaryService.createBeneficiary(currentCustomerId, {
+        beneficiaryAccountNumber: beneficiaryToSave.accountNumber,
+        beneficiaryName: beneficiaryToSave.accountHolderName,
+        bankCode: beneficiaryToSave.bankCode || 'KIENLONG',
+        bankName: beneficiaryToSave.bankName || 'KienLongBank',
         nickname: nickname || undefined,
         note: note || undefined
       })
       setShowSaveBeneficiaryModal(false)
-      // Success notification handled by form
+      setBeneficiaryToSave(null)
+      alert('Đã lưu vào danh bạ thụ hưởng thành công!')
     } catch (err) {
+      console.error('Error saving beneficiary:', err)
       setError(err instanceof Error ? err.message : 'Không thể lưu vào danh bạ')
     } finally {
       setSaveBeneficiaryLoading(false)
@@ -795,7 +820,10 @@ const TransferInternal = () => {
             {!isExistingBeneficiary && destinationAccountInfo && (
               <button
                 type="button"
-                onClick={() => setShowSaveBeneficiaryModal(true)}
+                onClick={() => {
+                  setBeneficiaryToSave(destinationAccountInfo)
+                  setShowSaveBeneficiaryModal(true)
+                }}
                 className="mt-4 w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
               >
                 <span className="material-icons-round text-sm">person_add</span>
@@ -832,14 +860,17 @@ const TransferInternal = () => {
       />
 
       {/* Save to Beneficiary Modal */}
-      {showSaveBeneficiaryModal && destinationAccountInfo && (
+      {showSaveBeneficiaryModal && beneficiaryToSave && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <h3 className="text-xl font-semibold mb-4 text-gray-900">Lưu vào danh bạ thụ hưởng</h3>
             <SaveBeneficiaryForm
-              accountInfo={destinationAccountInfo}
+              accountInfo={beneficiaryToSave}
               onSubmit={handleSaveBeneficiary}
-              onCancel={() => setShowSaveBeneficiaryModal(false)}
+              onCancel={() => {
+                setShowSaveBeneficiaryModal(false)
+                setBeneficiaryToSave(null)
+              }}
               loading={saveBeneficiaryLoading}
             />
           </div>

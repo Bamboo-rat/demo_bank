@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import Layout from '~/component/layout/Layout'
 import { transactionService, type TransferRequest, type TransferResponse, type AccountInfo, type BankResponse } from '~/service/transactionService'
@@ -32,7 +32,7 @@ const buildDigitalOtpPayload = (transaction: TransferResponse, timeSlice: number
     transaction.sourceAccountNumber,
     transaction.destinationAccountNumber,
     destinationBank,
-    transaction.amount.toString(),
+    transaction.amount.toFixed(2),
     timeSlice.toString()
   ].join('|')
 }

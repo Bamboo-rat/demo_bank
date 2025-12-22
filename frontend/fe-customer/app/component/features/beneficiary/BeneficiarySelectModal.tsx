@@ -15,7 +15,7 @@ export default function BeneficiarySelectModal({
   onSelect, 
   bankCode 
 }: BeneficiarySelectModalProps) {
-  const customerId = localStorage.getItem('customerId') || ''
+  const [customerId, setCustomerId] = useState('')
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([])
   const [filteredBeneficiaries, setFilteredBeneficiaries] = useState<Beneficiary[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -23,7 +23,13 @@ export default function BeneficiarySelectModal({
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (open) {
+    if (typeof window !== 'undefined') {
+      setCustomerId(localStorage.getItem('customerId') || '')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (open && customerId) {
       loadBeneficiaries()
       setSearchTerm('')
     }
@@ -84,7 +90,7 @@ export default function BeneficiarySelectModal({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">

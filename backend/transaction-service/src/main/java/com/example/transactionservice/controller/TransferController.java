@@ -56,7 +56,7 @@ public class TransferController {
     public ResponseEntity<ApiResponse<TransferResponseDTO>> confirmTransfer(
             @Valid @RequestBody TransferConfirmDTO confirmDTO) {
         
-        log.info("✅ Confirming transfer: {}", confirmDTO.getTransactionId());
+        log.info(": {}", confirmDTO.getTransactionId());
 
         TransferResponseDTO response = transferService.confirmTransfer(confirmDTO);
         

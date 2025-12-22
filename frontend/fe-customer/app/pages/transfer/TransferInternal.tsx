@@ -352,7 +352,7 @@ const TransferInternal = () => {
         transactionId: transactionData.transactionId,
         digitalOtpToken,
         pinHashCurrent,
-        timestamp: timeSlice
+        timestamp: timeSlice * 30000
       })
       setDigitalOtpPin('')
       setOtpToken('')

@@ -73,7 +73,6 @@ const TransferInternal = () => {
   
   // Load user accounts
   const [myAccounts, setMyAccounts] = useState<AccountSummary[]>([])
-  const [profile, setProfile] = useState<CustomerProfile | null>(null)
   const [digitalOtpStatus, setDigitalOtpStatus] = useState<DigitalOtpStatus | null>(null)
   const [digitalOtpLoading, setDigitalOtpLoading] = useState(true)
   const [digitalOtpError, setDigitalOtpError] = useState('')
@@ -81,8 +80,10 @@ const TransferInternal = () => {
   
   React.useEffect(() => {
     loadMyAccounts()
-    void initializeDigitalOtp()
-  }, [])
+    if (customerId) {
+      void initializeDigitalOtp()
+    }
+  }, [customerId])
 
   const stopTokenTimer = React.useCallback(() => {
     if (tokenTimerRef.current) {
@@ -132,13 +133,13 @@ const TransferInternal = () => {
   }
 
   const initializeDigitalOtp = async () => {
+    if (!customerId) return
+    
     setDigitalOtpLoading(true)
     setDigitalOtpError('')
 
     try {
-      const profileData = await customerService.getMyProfile()
-      setProfile(profileData)
-      await fetchDigitalOtpStatus(profileData.customerId)
+      await fetchDigitalOtpStatus(customerId)
     } catch (err) {
       setDigitalOtpError(err instanceof Error ? err.message : 'Không thể kiểm tra Digital OTP')
     } finally {
@@ -158,8 +159,8 @@ const TransferInternal = () => {
   }
 
   const handleDigitalOtpSuccess = async () => {
-    if (!profile?.customerId) return
-    await fetchDigitalOtpStatus(profile.customerId)
+    if (!customerId) return
+    await fetchDigitalOtpStatus(customerId)
     setShowDigitalOtpModal(false)
   }
 
@@ -830,10 +831,10 @@ const TransferInternal = () => {
         )}
       </div>
 
-      {profile?.customerId && (
+      {customerId && (
         <ConfigDigitalOtp
           open={showDigitalOtpModal}
-          customerId={profile.customerId}
+          customerId={customerId}
           mode={digitalOtpStatus?.enrolled ? 'update' : 'enroll'}
           disableClose={!digitalOtpStatus?.enrolled}
           onClose={() => setShowDigitalOtpModal(false)}

@@ -73,7 +73,6 @@ const TransferInterbank = () => {
   const [myAccounts, setMyAccounts] = useState<AccountSummary[]>([])
   const [banks, setBanks] = useState<BankResponse[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [profile, setProfile] = useState<CustomerProfile | null>(null)
   const [digitalOtpStatus, setDigitalOtpStatus] = useState<DigitalOtpStatus | null>(null)
   const [digitalOtpLoading, setDigitalOtpLoading] = useState(true)
   const [digitalOtpError, setDigitalOtpError] = useState('')
@@ -82,8 +81,10 @@ const TransferInterbank = () => {
   React.useEffect(() => {
     loadMyAccounts()
     loadBanks()
-    void initializeDigitalOtp()
-  }, [])
+    if (customerId) {
+      void initializeDigitalOtp()
+    }
+  }, [customerId])
 
   const stopTokenTimer = React.useCallback(() => {
     if (tokenTimerRef.current) {
@@ -142,13 +143,13 @@ const TransferInterbank = () => {
   }
 
   const initializeDigitalOtp = async () => {
+    if (!customerId) return
+    
     setDigitalOtpLoading(true)
     setDigitalOtpError('')
 
     try {
-      const profileData = await customerService.getMyProfile()
-      setProfile(profileData)
-      await fetchDigitalOtpStatus(profileData.customerId)
+      await fetchDigitalOtpStatus(customerId)
     } catch (err) {
       setDigitalOtpError(err instanceof Error ? err.message : 'Không thể kiểm tra Digital OTP')
     } finally {
@@ -168,8 +169,8 @@ const TransferInterbank = () => {
   }
 
   const handleDigitalOtpSuccess = async () => {
-    if (!profile?.customerId) return
-    await fetchDigitalOtpStatus(profile.customerId)
+    if (!customerId) return
+    await fetchDigitalOtpStatus(customerId)
     setShowDigitalOtpModal(false)
   }
 
@@ -916,10 +917,10 @@ const TransferInterbank = () => {
         )}
       </div>
 
-      {profile?.customerId && (
+      {customerId && (
         <ConfigDigitalOtp
           open={showDigitalOtpModal}
-          customerId={profile.customerId}
+          customerId={customerId}
           mode={digitalOtpStatus?.enrolled ? 'update' : 'enroll'}
           disableClose={!digitalOtpStatus?.enrolled}
           onClose={() => setShowDigitalOtpModal(false)}

@@ -1,30 +1,21 @@
 import React, { useState, useEffect } from 'react'
 import Layout from '~/component/layout/Layout'
 import { customerService, type CustomerProfile } from '~/service/customerService'
+import { useAuth } from '~/context/AuthContext'
 
 const Profile = () => {
-  const [profile, setProfile] = useState<CustomerProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { customerProfile: profile, loading: profileLoading, refreshProfile } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState<Partial<CustomerProfile>>({})
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    fetchProfile()
-  }, [])
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true)
-      const data = await customerService.getMyProfile()
-      setProfile(data)
-      setFormData(data)
-    } catch (error) {
-      console.error('Failed to fetch profile:', error)
-    } finally {
-      setLoading(false)
+    if (profile) {
+      setFormData(profile)
     }
-  }
+  }, [profile])
+
+  const loading = profileLoading
 
   const handleEdit = () => {
     setIsEditing(true)
@@ -40,7 +31,7 @@ const Profile = () => {
     try {
       setSaving(true)
       await customerService.updateProfile(formData)
-      await fetchProfile()
+      await refreshProfile()
       setIsEditing(false)
     } catch (error) {
       console.error('Failed to update profile:', error)

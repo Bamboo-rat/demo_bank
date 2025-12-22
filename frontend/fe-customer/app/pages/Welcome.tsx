@@ -1,8 +1,8 @@
 import React from 'react'
 import { Link } from 'react-router'
-import { customerService, type CustomerProfile } from '~/service/customerService'
 import { accountService, type AccountSummary } from '~/service/accountService'
 import Layout from '~/component/layout/Layout'
+import { useAuth } from '~/context/AuthContext'
 
 const ACCENT_CONFIG = {
   purple: {
@@ -51,8 +51,7 @@ const formatCurrency = (value: number, currency = 'VND') => {
 }
 
 const Dashboard = () => {
-  const [profile, setProfile] = React.useState<CustomerProfile | null>(null)
-  const [profileLoading, setProfileLoading] = React.useState(true)
+  const { customerProfile: profile, loading: profileLoading } = useAuth()
   const [accounts, setAccounts] = React.useState<AccountSummary[]>([])
   const [accountsLoading, setAccountsLoading] = React.useState(true)
   const [accountsError, setAccountsError] = React.useState<string | null>(null)
@@ -63,21 +62,6 @@ const Dashboard = () => {
     currency: string
   } | null>(null)
   const [showBalance, setShowBalance] = React.useState(false)
-
-  React.useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const data = await customerService.getMyProfile()
-        setProfile(data)
-      } catch (error) {
-        console.error('Failed to fetch profile:', error)
-      } finally {
-        setProfileLoading(false)
-      }
-    }
-
-    fetchProfile()
-  }, [])
 
   React.useEffect(() => {
     const fetchAccounts = async () => {

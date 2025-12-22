@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import Layout from '~/component/layout/Layout'
-import { customerService, type CustomerProfile } from '~/service/customerService'
 import { digitalOtpService, type DigitalOtpStatus } from '~/service/digitalOtpService'
 import ConfigDigitalOtp from '~/component/features/ConfigDigitalOtp'
+import { useAuth } from '~/context/AuthContext'
 
 const DigitalOtp = () => {
-  const [profile, setProfile] = useState<CustomerProfile | null>(null)
+  const { customerProfile: profile, customerId } = useAuth()
   const [status, setStatus] = useState<DigitalOtpStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -13,16 +13,16 @@ const DigitalOtp = () => {
 
   React.useEffect(() => {
     void initialize()
-  }, [])
+  }, [customerId])
 
   const initialize = async () => {
+    if (!customerId) return
+    
     setLoading(true)
     setError('')
 
     try {
-      const profileData = await customerService.getMyProfile()
-      setProfile(profileData)
-      await loadStatus(profileData.customerId)
+      await loadStatus(customerId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Không thể tải thông tin Digital OTP')
     } finally {
@@ -40,8 +40,8 @@ const DigitalOtp = () => {
   }
 
   const handleSuccess = async () => {
-    if (!profile?.customerId) return
-    await loadStatus(profile.customerId)
+    if (!customerId) return
+    await loadStatus(customerId)
     setModalOpen(false)
   }
 

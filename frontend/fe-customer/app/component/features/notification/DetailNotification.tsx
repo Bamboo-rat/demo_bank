@@ -128,7 +128,7 @@ const DetailNotification: React.FC<DetailNotificationProps> = ({ notification, i
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-70">
             <div className="flex items-center gap-3">
               <div className={`w-12 h-12 rounded-full ${getTypeColor(notification.type)} flex items-center justify-center`}>
                 <span className="material-icons-round text-2xl">

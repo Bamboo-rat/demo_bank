@@ -36,9 +36,9 @@ const Transfer = () => {
         icon: string
         link: string
     }> = [
-            { title: 'Chuyển tiền nội bộ', icon: '', link: '/transfer/internal' },
-            { title: 'Chuyển liên ngân hàng', icon: '', link: '/transfer/interbank' },
-            { title: 'Chuyển tiền nhanh 24/7', icon: '', link: '/transfer/fast247' }
+            { title: 'Chuyển tiền nội bộ', icon: 'compare_arrows', link: '/transfer/internal' },
+            { title: 'Chuyển liên ngân hàng', icon: 'account_balance', link: '/transfer/interbank' },
+            { title: 'Chuyển tiền nhanh 24/7', icon: 'bolt', link: '/transfer/fast247' }
         ]
 
     return (

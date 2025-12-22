@@ -69,6 +69,7 @@ public class CustomerQueryDubboServiceImpl implements CustomerQueryDubboService 
     private CustomerBasicInfo mapToBasicInfo(Customer customer) {
         return CustomerBasicInfo.builder()
                 .customerId(customer.getCustomerId())
+                .authProviderId(customer.getAuthProviderId())
                 .fullName(customer.getFullName())
                 .email(customer.getEmail())
                 .phoneNumber(customer.getPhoneNumber())

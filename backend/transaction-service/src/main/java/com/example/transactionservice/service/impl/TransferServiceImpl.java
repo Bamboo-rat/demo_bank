@@ -470,17 +470,31 @@ public class TransferServiceImpl implements TransferService {
     }
 
     private void ensureAccountOwnership(AccountInfoDTO sourceAccountInfo) {
-        String authenticatedCustomerId = SecurityUtils.getCurrentCustomerId()
+        // Get Keycloak user ID from JWT
+        String authenticatedKeycloakId = SecurityUtils.getCurrentCustomerId()
             .orElseThrow(() -> new AccountValidationException(
                 ErrorCode.UNAUTHORIZED,
                 "Authentication is required to perform transfers"
             ))
             .trim();
 
+        // Get account owner's customer ID
         String accountOwnerId = extractCustomerId(sourceAccountInfo);
-        if (!accountOwnerId.equals(authenticatedCustomerId)) {
-            log.warn("Unauthorized transfer attempt. customerId={}, accountOwner={}",
-                authenticatedCustomerId, accountOwnerId);
+        
+        // Get customer's Keycloak ID (authProviderId) to compare with JWT
+        CustomerBasicInfo customerInfo = customerServiceClient.getCustomerBasicInfo(accountOwnerId);
+        if (customerInfo == null || customerInfo.getAuthProviderId() == null) {
+            log.error("Unable to retrieve customer info for customerId: {}", accountOwnerId);
+            throw new AccountValidationException(
+                ErrorCode.UNAUTHORIZED_ACCOUNT_ACCESS,
+                "Unable to verify account ownership"
+            );
+        }
+        
+        // Compare Keycloak IDs
+        if (!customerInfo.getAuthProviderId().equals(authenticatedKeycloakId)) {
+            log.warn("Unauthorized transfer attempt. keycloakId={}, accountOwnerKeycloakId={}, customerId={}",
+                authenticatedKeycloakId, customerInfo.getAuthProviderId(), accountOwnerId);
             throw new AccountValidationException(
                 ErrorCode.UNAUTHORIZED_ACCOUNT_ACCESS,
                 "Source account does not belong to the authenticated customer"

@@ -40,6 +40,7 @@ export interface TransferConfirm {
   transactionId: string
   digitalOtpToken: string
   pinHashCurrent: string
+  timestamp: number
 }
 
 export interface TransferResponse {

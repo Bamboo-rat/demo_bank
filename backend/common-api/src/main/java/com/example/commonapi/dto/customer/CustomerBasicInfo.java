@@ -19,6 +19,7 @@ public class CustomerBasicInfo implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private String customerId;
+    private String authProviderId;
     private String fullName;
     private String email;
     private String phoneNumber;

@@ -324,38 +324,40 @@ const TransferInterbank = () => {
     }
   }
 
-  const handleRevealDigitalOtpToken = async () => {
-    if (!transactionData) return
+  // Auto-generate token when PIN is complete
+  useEffect(() => {
+    const generateToken = async () => {
+      if (currentStep !== 'otp' || !transactionData || digitalOtpPin.length !== DIGITAL_PIN_LENGTH) {
+        return
+      }
 
-    if (digitalOtpPin.length !== DIGITAL_PIN_LENGTH) {
-      setError(`PIN Digital OTP phải gồm ${DIGITAL_PIN_LENGTH} chữ số`)
-      return
+      const secret = getStoredOtpSecret()
+      const saltBase64 = getStoredSalt()
+
+      if (!secret || !saltBase64) {
+        setError('Không tìm thấy khóa Digital OTP trên trình duyệt. Vui lòng cấu hình lại.')
+        setShowDigitalOtpModal(true)
+        return
+      }
+
+      setGeneratingToken(true)
+      setError('')
+
+      try {
+        await hashPinWithSalt(digitalOtpPin, saltBase64)
+        startTokenTimer(secret)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Không thể tạo mã Digital OTP')
+        stopTokenTimer()
+        setOtpToken('')
+        setOtpCountdown(0)
+      } finally {
+        setGeneratingToken(false)
+      }
     }
 
-    const secret = getStoredOtpSecret()
-    const saltBase64 = getStoredSalt()
-
-    if (!secret || !saltBase64) {
-      setError('Không tìm thấy khóa Digital OTP trên trình duyệt. Vui lòng cấu hình lại.')
-      setShowDigitalOtpModal(true)
-      return
-    }
-
-    setGeneratingToken(true)
-    setError('')
-
-    try {
-      await hashPinWithSalt(digitalOtpPin, saltBase64)
-      startTokenTimer(secret)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể tạo mã Digital OTP')
-      stopTokenTimer()
-      setOtpToken('')
-      setOtpCountdown(0)
-    } finally {
-      setGeneratingToken(false)
-    }
-  }
+    void generateToken()
+  }, [digitalOtpPin, currentStep, transactionData])
   
   const handleVerifyDigitalOtp = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -388,7 +390,8 @@ const TransferInterbank = () => {
       const confirmed = await transactionService.confirmTransfer({
         transactionId: transactionData.transactionId,
         digitalOtpToken,
-        pinHashCurrent
+        pinHashCurrent,
+        timestamp: timeSlice
       })
       setDigitalOtpPin('')
       setOtpToken('')
@@ -799,17 +802,9 @@ const TransferInterbank = () => {
                   required
                   autoFocus
                 />
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mt-4">
-                  <button
-                    type="button"
-                    onClick={handleRevealDigitalOtpToken}
-                    disabled={generatingToken || digitalOtpPin.length !== DIGITAL_PIN_LENGTH}
-                    className="px-5 py-3 rounded-lg border border-blue-500 text-blue-600 font-semibold hover:bg-blue-50 disabled:opacity-60"
-                  >
-                    {generatingToken ? 'Đang tạo mã...' : 'Hiển thị mã 6 số'}
-                  </button>
-                  <p className="text-sm text-gray-500">Mã sẽ tự cập nhật và hết hạn sau 30 giây.</p>
-                </div>
+                {generatingToken && (
+                  <p className="text-sm text-blue-600 mt-2 text-center">Đang tạo mã...</p>
+                )}
               </div>
 
               <div className="rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">

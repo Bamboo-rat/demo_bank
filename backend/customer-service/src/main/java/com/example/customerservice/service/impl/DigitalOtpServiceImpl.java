@@ -271,7 +271,8 @@ public class DigitalOtpServiceImpl implements DigitalOtpService {
         if (bankCode == null || bankCode.isEmpty()) {
             bankCode = "KIENLONG";  // Default for internal transfers
         }
-
+        
+        // Format amount to 2 decimal places with dot separator (US format) to match frontend's toFixed(2)
         String formattedAmount = String.format(Locale.US, "%.2f", request.getAmount());
         
         return String.format("%s|%s|%s|%s|%s|%d",

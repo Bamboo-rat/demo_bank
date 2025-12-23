@@ -108,7 +108,7 @@ export const loanService = {
   async getMyLoanApplications(customerId: string): Promise<LoanApplication[]> {
     try {
       const { data } = await axiosLoan.get<any[]>(
-        `/api/loan/applications/customer/${customerId}`
+        `/loan/applications/customer/${customerId}`
       )
 
       return data.map(mapLoanApplication)
@@ -120,7 +120,7 @@ export const loanService = {
   async getMyLoans(customerId: string): Promise<LoanAccount[]> {
     try {
       const { data } = await axiosLoan.get<any[]>(
-        `/api/loan/accounts/customer/${customerId}`
+        `/loan/accounts/customer/${customerId}`
       )
 
       return data.map(mapLoanAccount)
@@ -133,7 +133,7 @@ export const loanService = {
   async getLoanDetail(loanAccountId: string): Promise<LoanAccount> {
     try {
       const { data } = await axiosLoan.get<any>(
-        `/api/loan/accounts/${loanAccountId}`
+        `/loan/accounts/${loanAccountId}`
       )
 
       return mapLoanAccount(data)
@@ -145,7 +145,7 @@ export const loanService = {
   async getRepaymentSchedule(loanAccountId: string): Promise<RepaymentSchedule[]> {
     try {
       const { data } = await axiosLoan.get<any[]>(
-        `/api/loan/schedule/${loanAccountId}`
+        `/loan/schedule/${loanAccountId}`
       )
 
       return data.map(mapRepaymentSchedule)
@@ -157,7 +157,7 @@ export const loanService = {
   async getPaymentHistory(loanAccountId: string): Promise<LoanPaymentHistory[]> {
     try {
       const { data } = await axiosLoan.get<any[]>(
-        `/api/loan/repayment/history/${loanAccountId}`
+        `/loan/repayment/history/${loanAccountId}`
       )
 
       return data.map((payment: any) => ({
@@ -177,7 +177,7 @@ export const loanService = {
   async createLoanApplication(request: CreateLoanApplicationRequest): Promise<LoanApplication> {
     try {
       const { data } = await axiosLoan.post<any>(
-        '/api/loan/applications',
+        '/loan/applications',
         request
       )
 
@@ -190,7 +190,7 @@ export const loanService = {
   async repayInstallment(request: RepayInstallmentRequest): Promise<any> {
     try {
       const { data } = await axiosLoan.post<any>(
-        '/api/loan/repayment/pay',
+        '/loan/repayment/pay',
         request
       )
 

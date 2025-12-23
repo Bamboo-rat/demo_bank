@@ -144,7 +144,8 @@ export const savingsService = {
 
   async calculateInterest(
     principalAmount: number,
-    tenor: string
+    tenor: string,
+    interestPaymentMethod = 'END_OF_TERM'
   ): Promise<{ 
     interestRate: number
     projectedInterest: number
@@ -154,7 +155,7 @@ export const savingsService = {
     try {
       const { data } = await axiosSavings.post<ApiResponse<any>>(
         '/savings/calculate-preview',
-        { principalAmount, tenor }
+        { principalAmount, tenor, interestPaymentMethod }
       )
 
       if (!data?.success || !data?.data) {

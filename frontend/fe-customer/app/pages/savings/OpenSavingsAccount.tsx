@@ -52,7 +52,8 @@ export default function OpenSavingsAccount() {
     try {
       const result = await savingsService.calculateInterest(
         Number(formData.depositAmount),
-        `${selectedProduct.termMonths}M`  // Convert to tenor format: "6M", "12M", etc.
+        `${selectedProduct.termMonths}M`,  // Convert to tenor format: "6M", "12M", etc.
+        'END_OF_TERM'
       )
       setCalculatedInterest({
         estimatedInterest: result.projectedInterest,

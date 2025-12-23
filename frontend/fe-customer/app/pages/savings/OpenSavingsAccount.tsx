@@ -52,10 +52,12 @@ export default function OpenSavingsAccount() {
     try {
       const result = await savingsService.calculateInterest(
         Number(formData.depositAmount),
-        selectedProduct.termMonths,
-        selectedProduct.interestRate
+        `${selectedProduct.termMonths}M`  // Convert to tenor format: "6M", "12M", etc.
       )
-      setCalculatedInterest(result)
+      setCalculatedInterest({
+        estimatedInterest: result.projectedInterest,
+        maturityAmount: result.maturityAmount
+      })
     } catch (error) {
       console.error('Failed to calculate interest:', error)
     }
@@ -74,10 +76,11 @@ export default function OpenSavingsAccount() {
       setLoading(true)
       await savingsService.createSavingsAccount({
         sourceAccountNumber: formData.sourceAccountNumber,
-        savingsType: selectedProduct.productCode,
-        depositAmount: Number(formData.depositAmount),
-        termMonths: selectedProduct.termMonths,
-        autoRenew: formData.autoRenew
+        principalAmount: Number(formData.depositAmount),
+        tenor: `${selectedProduct.termMonths}M`,  // Convert to tenor format
+        interestPaymentMethod: 'END_OF_TERM',
+        autoRenewType: formData.autoRenew ? 'PRINCIPAL_AND_INTEREST' : 'NONE',
+        description: `Mở sổ ${selectedProduct.productName}`
       })
 
       alert('Mở sổ tiết kiệm thành công!')

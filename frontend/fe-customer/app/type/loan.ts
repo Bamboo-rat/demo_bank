@@ -58,6 +58,7 @@ export interface LoanPaymentHistory {
 }
 
 export interface CreateLoanApplicationRequest {
+  customerId: string 
   requestedAmount: number
   tenor: number
   purpose: string
@@ -76,12 +77,12 @@ export interface RepayInstallmentRequest {
 }
 
 export type LoanPurpose = 
-  | 'PERSONAL' 
-  | 'HOME_PURCHASE' 
-  | 'CAR_PURCHASE' 
-  | 'EDUCATION' 
-  | 'BUSINESS' 
-  | 'OTHER'
+  | 'CONSUMER_LOAN'      // Vay tiêu dùng
+  | 'HOME_LOAN'          // Vay mua nhà
+  | 'AUTO_LOAN'          // Vay mua xe
+  | 'PERSONAL_LOAN'      // Vay tín chấp
+  | 'BUSINESS_LOAN'      // Vay kinh doanh
+  | 'EDUCATION_LOAN'     // Vay giáo dục
 
 export type RepaymentMethod = 'EQUAL_PRINCIPAL' | 'EQUAL_INSTALLMENT'
 

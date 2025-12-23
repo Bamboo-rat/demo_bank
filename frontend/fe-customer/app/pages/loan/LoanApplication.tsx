@@ -4,9 +4,11 @@ import { loanService } from '~/service/loanService'
 import { accountService } from '~/service/accountService'
 import type { AccountSummary } from '~/service/accountService'
 import Layout from '~/component/layout/Layout'
+import { useAuth } from '~/context/AuthContext'
 
 export default function LoanApplication() {
   const navigate = useNavigate()
+  const { customerProfile } = useAuth()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [accounts, setAccounts] = useState<AccountSummary[]>([])
@@ -35,12 +37,12 @@ export default function LoanApplication() {
   }
 
   const loanPurposes = [
-    { value: 'PERSONAL', label: 'Tiêu dùng cá nhân' },
-    { value: 'HOME_PURCHASE', label: 'Mua nhà' },
-    { value: 'CAR_PURCHASE', label: 'Mua xe' },
-    { value: 'EDUCATION', label: 'Học tập' },
-    { value: 'BUSINESS', label: 'Kinh doanh' },
-    { value: 'OTHER', label: 'Khác' }
+    { value: 'CONSUMER_LOAN', label: 'Tiêu dùng' },
+    { value: 'HOME_LOAN', label: 'Mua nhà' },
+    { value: 'AUTO_LOAN', label: 'Mua xe' },
+    { value: 'EDUCATION_LOAN', label: 'Học tập' },
+    { value: 'BUSINESS_LOAN', label: 'Kinh doanh' },
+    { value: 'PERSONAL_LOAN', label: 'Tín chấp' }
   ]
 
   const termOptions = [6, 12, 18, 24, 36, 48, 60]
@@ -56,13 +58,21 @@ export default function LoanApplication() {
   const handleSubmit = async () => {
     try {
       setLoading(true)
+
+      const customerId = customerProfile?.customerId
+      if (!customerId) {
+        alert('Không tìm thấy thông tin khách hàng')
+        return
+      }
+
       await loanService.createLoanApplication({
+        customerId,
         requestedAmount: Number(formData.requestedAmount),
         tenor: formData.tenor,
         purpose: formData.purpose,
         repaymentMethod: formData.repaymentMethod,
-        monthlyIncome: Number(formData.monthlyIncome),
-        employmentStatus: formData.employmentStatus,
+        monthlyIncome: Number(formData.monthlyIncome) || undefined,
+        employmentStatus: formData.employmentStatus || undefined,
         collateralInfo: formData.collateralInfo || undefined
       })
 

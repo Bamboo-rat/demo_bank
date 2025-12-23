@@ -16,9 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.*;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.Locale;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -132,20 +132,30 @@ public class DigitalOtpServiceImpl implements DigitalOtpService {
         // Verify TOTP token with ±1 time slice tolerance
         try {
             boolean tokenValid = false;
+            String matchedPayload = null;
+            String matchedToken = null;
+            
             for (int offset = -1; offset <= 1; offset++) {
+                String payload = buildPayload(request, timeSlice + offset);
                 String expectedToken = generateTotpToken(
                     customer.getDigitalOtpSecret(),
-                    buildPayload(request, timeSlice + offset)
+                    payload
                 );
+                
+                log.debug("Testing offset {}: Expected token: {}, Payload: {}", offset, expectedToken, payload);
                 
                 if (expectedToken.equals(request.getDigitalOtpToken())) {
                     tokenValid = true;
+                    matchedPayload = payload;
+                    matchedToken = expectedToken;
+                    log.info("OTP token matched with offset: {}", offset);
                     break;
                 }
             }
 
             if (!tokenValid) {
-                log.warn("Invalid TOTP token for transaction: {}", request.getTransactionId());
+                log.warn("Invalid TOTP token for transaction: {}. No match found in time window.", 
+                    request.getTransactionId());
                 incrementFailedAttempts(customer);
                 return buildErrorResponse("ERROR_INVALID_TOKEN", 
                     "Invalid Digital OTP token", 
@@ -261,13 +271,15 @@ public class DigitalOtpServiceImpl implements DigitalOtpService {
         if (bankCode == null || bankCode.isEmpty()) {
             bankCode = "KIENLONG";  // Default for internal transfers
         }
+
+        String formattedAmount = String.format(Locale.US, "%.2f", request.getAmount());
         
         return String.format("%s|%s|%s|%s|%s|%d",
             request.getTransactionId(),
             request.getSourceAccountNumber(),
             request.getDestinationAccountNumber(),
             bankCode,
-            request.getAmount().toPlainString(),
+            formattedAmount,
             timeSlice
         );
     }

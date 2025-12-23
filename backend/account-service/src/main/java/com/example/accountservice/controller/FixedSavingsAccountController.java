@@ -108,6 +108,30 @@ public class FixedSavingsAccountController {
     }
 
     /**
+     * Lấy danh sách các sản phẩm tiết kiệm có sẵn
+     */
+    @GetMapping("/products")
+    public ResponseEntity<ApiResponse<List<SavingsProductResponse>>> getSavingsProducts() {
+        
+        log.info("[CONTROLLER] GET /api/savings/products");
+        
+        try {
+            List<SavingsProductResponse> products = savingsService.getSavingsProducts();
+            
+            return ResponseEntity.ok(
+                ApiResponse.success(
+                    String.format("Found %d savings products", products.size()),
+                    products)
+            );
+            
+        } catch (Exception e) {
+            log.error("[CONTROLLER] Error fetching savings products", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("SAVINGS_PRODUCTS_FAILED", "Failed to fetch savings products"));
+        }
+    }
+
+    /**
      * Lấy danh sách tất cả sổ tiết kiệm của khách hàng
      */
     @GetMapping("/customer")

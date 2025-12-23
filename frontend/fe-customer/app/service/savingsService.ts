@@ -54,7 +54,7 @@ export const savingsService = {
   async getMySavingsAccounts(): Promise<SavingsAccount[]> {
     try {
       const { data } = await axiosSavings.get<ApiResponse<any[]>>(
-        '/savings/my-savings'
+        '/savings/customer'
       )
 
       if (!data?.success || !data?.data) {
@@ -92,10 +92,11 @@ export const savingsService = {
     }
   },
 
-  async getSavingsAccountDetail(accountNumber: string): Promise<SavingsAccount> {
+
+  async getSavingsAccountDetail(savingsAccountId: string): Promise<SavingsAccount> {
     try {
       const { data } = await axiosSavings.get<ApiResponse<any>>(
-        `/savings/${accountNumber}`
+        `/savings/${savingsAccountId}`
       )
 
       if (!data?.success || !data?.data) {
@@ -125,30 +126,35 @@ export const savingsService = {
     }
   },
 
-  async closeSavingsAccount(request: CloseSavingsRequest): Promise<void> {
+  async closeSavingsAccount(savingsAccountId: string): Promise<any> {
     try {
-      const { data } = await axiosSavings.post<ApiResponse<void>>(
-        '/savings/close',
-        request
+      const { data } = await axiosSavings.post<ApiResponse<any>>(
+        `/savings/${savingsAccountId}/premature-withdraw`
       )
 
       if (!data?.success) {
         throw new Error(data?.message ?? 'Không thể tất toán sổ tiết kiệm')
       }
+
+      return data.data
     } catch (error) {
       throw normalizeError(error)
     }
   },
 
   async calculateInterest(
-    depositAmount: number,
-    termMonths: number,
+    principalAmount: number,
+    tenor: string
+  ): Promise<{ 
     interestRate: number
-  ): Promise<{ estimatedInterest: number; maturityAmount: number }> {
+    projectedInterest: number
+    maturityAmount: number 
+    maturityDate: string
+  }> {
     try {
       const { data } = await axiosSavings.post<ApiResponse<any>>(
-        '/savings/calculate-interest',
-        { depositAmount, termMonths, interestRate }
+        '/savings/calculate-preview',
+        { principalAmount, tenor }
       )
 
       if (!data?.success || !data?.data) {
@@ -156,8 +162,10 @@ export const savingsService = {
       }
 
       return {
-        estimatedInterest: Number(data.data.estimatedInterest ?? 0),
-        maturityAmount: Number(data.data.maturityAmount ?? 0)
+        interestRate: Number(data.data.interestRate ?? 0),
+        projectedInterest: Number(data.data.projectedInterest ?? 0),
+        maturityAmount: Number(data.data.maturityAmount ?? 0),
+        maturityDate: data.data.maturityDate
       }
     } catch (error) {
       throw normalizeError(error)

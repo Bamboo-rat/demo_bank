@@ -27,10 +27,12 @@ export interface SavingsProduct {
 
 export interface CreateSavingsRequest {
   sourceAccountNumber: string
-  savingsType: string
-  depositAmount: number
-  termMonths: number
-  autoRenew: boolean
+  principalAmount: number
+  tenor: string  // "6M", "12M", "24M", etc.
+  interestPaymentMethod: string  // "END_OF_TERM", "MONTHLY", "QUARTERLY"
+  autoRenewType: string  // "NONE", "PRINCIPAL_ONLY", "PRINCIPAL_AND_INTEREST"
+  beneficiaryAccountNumber?: string
+  description?: string
 }
 
 export interface CloseSavingsRequest {

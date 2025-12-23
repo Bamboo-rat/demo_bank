@@ -24,12 +24,12 @@ interface ApiResponse<T> {
 }
 
 const PURPOSE_LABELS: Record<string, string> = {
-  PERSONAL: 'Tiêu dùng cá nhân',
-  HOME_PURCHASE: 'Mua nhà',
-  CAR_PURCHASE: 'Mua xe',
-  EDUCATION: 'Học tập',
-  BUSINESS: 'Kinh doanh',
-  OTHER: 'Khác'
+  CONSUMER_LOAN: 'Tiêu dùng',
+  HOME_LOAN: 'Mua nhà',
+  AUTO_LOAN: 'Mua xe',
+  PERSONAL_LOAN: 'Tín chấp',
+  BUSINESS_LOAN: 'Kinh doanh',
+  EDUCATION_LOAN: 'Học tập'
 }
 
 const REPAYMENT_METHOD_LABELS: Record<string, string> = {
@@ -104,49 +104,39 @@ const mapRepaymentSchedule = (schedule: any): RepaymentSchedule => ({
 })
 
 export const loanService = {
-  async getMyLoanApplications(): Promise<LoanApplication[]> {
+
+  async getMyLoanApplications(customerId: string): Promise<LoanApplication[]> {
     try {
-      const { data } = await axiosLoan.get<ApiResponse<any[]>>(
-        '/loan-applications/my-applications'
+      const { data } = await axiosLoan.get<any[]>(
+        `/api/loan/applications/customer/${customerId}`
       )
 
-      if (!data?.success || !data?.data) {
-        throw new Error(data?.message ?? 'Không thể lấy danh sách đơn vay')
-      }
-
-      return data.data.map(mapLoanApplication)
+      return data.map(mapLoanApplication)
     } catch (error) {
       throw normalizeError(error)
     }
   },
 
-  async getMyLoans(): Promise<LoanAccount[]> {
+  async getMyLoans(customerId: string): Promise<LoanAccount[]> {
     try {
-      const { data } = await axiosLoan.get<ApiResponse<any[]>>(
-        '/loan-accounts/my-loans'
+      const { data } = await axiosLoan.get<any[]>(
+        `/api/loan/accounts/customer/${customerId}`
       )
 
-      if (!data?.success || !data?.data) {
-        throw new Error(data?.message ?? 'Không thể lấy danh sách khoản vay')
-      }
-
-      return data.data.map(mapLoanAccount)
+      return data.map(mapLoanAccount)
     } catch (error) {
       throw normalizeError(error)
     }
   },
 
+  // Backend: GET /api/loan/accounts/{loanAccountId}
   async getLoanDetail(loanAccountId: string): Promise<LoanAccount> {
     try {
-      const { data } = await axiosLoan.get<ApiResponse<any>>(
-        `/loan-accounts/${loanAccountId}`
+      const { data } = await axiosLoan.get<any>(
+        `/api/loan/accounts/${loanAccountId}`
       )
 
-      if (!data?.success || !data?.data) {
-        throw new Error(data?.message ?? 'Không thể lấy thông tin khoản vay')
-      }
-
-      return mapLoanAccount(data.data)
+      return mapLoanAccount(data)
     } catch (error) {
       throw normalizeError(error)
     }
@@ -154,15 +144,11 @@ export const loanService = {
 
   async getRepaymentSchedule(loanAccountId: string): Promise<RepaymentSchedule[]> {
     try {
-      const { data } = await axiosLoan.get<ApiResponse<any[]>>(
-        `/repayment-schedule/${loanAccountId}`
+      const { data } = await axiosLoan.get<any[]>(
+        `/api/loan/schedule/${loanAccountId}`
       )
 
-      if (!data?.success || !data?.data) {
-        throw new Error(data?.message ?? 'Không thể lấy lịch trả nợ')
-      }
-
-      return data.data.map(mapRepaymentSchedule)
+      return data.map(mapRepaymentSchedule)
     } catch (error) {
       throw normalizeError(error)
     }
@@ -170,15 +156,11 @@ export const loanService = {
 
   async getPaymentHistory(loanAccountId: string): Promise<LoanPaymentHistory[]> {
     try {
-      const { data } = await axiosLoan.get<ApiResponse<any[]>>(
-        `/repayment/history/${loanAccountId}`
+      const { data } = await axiosLoan.get<any[]>(
+        `/api/loan/repayment/history/${loanAccountId}`
       )
 
-      if (!data?.success || !data?.data) {
-        throw new Error(data?.message ?? 'Không thể lấy lịch sử thanh toán')
-      }
-
-      return data.data.map((payment: any) => ({
+      return data.map((payment: any) => ({
         paidAmount: Number(payment.paidAmount ?? 0),
         principalPaid: Number(payment.principalPaid ?? 0),
         interestPaid: Number(payment.interestPaid ?? 0),
@@ -194,31 +176,25 @@ export const loanService = {
 
   async createLoanApplication(request: CreateLoanApplicationRequest): Promise<LoanApplication> {
     try {
-      const { data } = await axiosLoan.post<ApiResponse<any>>(
-        '/loan-applications/register',
+      const { data } = await axiosLoan.post<any>(
+        '/api/loan/applications',
         request
       )
 
-      if (!data?.success || !data?.data) {
-        throw new Error(data?.message ?? 'Không thể đăng ký vay')
-      }
-
-      return mapLoanApplication(data.data)
+      return mapLoanApplication(data)
     } catch (error) {
       throw normalizeError(error)
     }
   },
 
-  async repayInstallment(request: RepayInstallmentRequest): Promise<void> {
+  async repayInstallment(request: RepayInstallmentRequest): Promise<any> {
     try {
-      const { data } = await axiosLoan.post<ApiResponse<void>>(
-        '/repayment/repay',
+      const { data } = await axiosLoan.post<any>(
+        '/api/loan/repayment/pay',
         request
       )
 
-      if (!data?.success) {
-        throw new Error(data?.message ?? 'Không thể thanh toán kỳ trả nợ')
-      }
+      return data
     } catch (error) {
       throw normalizeError(error)
     }
@@ -226,17 +202,11 @@ export const loanService = {
 
   async getCurrentInstallment(loanAccountId: string): Promise<RepaymentSchedule | null> {
     try {
-      const { data } = await axiosLoan.get<ApiResponse<any>>(
-        `/repayment-schedule/${loanAccountId}/current`
-      )
-
-      if (!data?.success || !data?.data) {
-        return null
-      }
-
-      return mapRepaymentSchedule(data.data)
+      const schedules = await this.getRepaymentSchedule(loanAccountId)
+      // Tìm kỳ đầu tiên chưa thanh toán
+      const current = schedules.find(s => s.status === 'PENDING' || s.status === 'OVERDUE')
+      return current || null
     } catch (error) {
-      // Return null for not found, throw for other errors
       if (isAxiosError(error) && error.response?.status === 404) {
         return null
       }

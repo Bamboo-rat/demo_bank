@@ -3,8 +3,10 @@ import { Link } from 'react-router'
 import { loanService } from '~/service/loanService'
 import type { LoanApplication, LoanAccount } from '~/type/loan'
 import Layout from '~/component/layout/Layout'
+import { useAuth } from '~/context/AuthContext'
 
 export default function MyLoans() {
+  const { customerProfile } = useAuth()
   const [activeTab, setActiveTab] = useState<'accounts' | 'applications'>('accounts')
   const [loanAccounts, setLoanAccounts] = useState<LoanAccount[]>([])
   const [loanApplications, setLoanApplications] = useState<LoanApplication[]>([])
@@ -20,11 +22,17 @@ export default function MyLoans() {
       setLoading(true)
       setError(null)
 
+      const customerId = customerProfile?.customerId
+      if (!customerId) {
+        setError('Không tìm thấy thông tin khách hàng')
+        return
+      }
+
       if (activeTab === 'accounts') {
-        const data = await loanService.getMyLoans()
+        const data = await loanService.getMyLoans(customerId)
         setLoanAccounts(data)
       } else {
-        const data = await loanService.getMyLoanApplications()
+        const data = await loanService.getMyLoanApplications(customerId)
         setLoanApplications(data)
       }
     } catch (err) {

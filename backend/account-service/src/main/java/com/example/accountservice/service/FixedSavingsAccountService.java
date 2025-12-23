@@ -19,6 +19,13 @@ public interface FixedSavingsAccountService {
     SavingsPreviewResponse calculatePreview(SavingsPreviewRequest request);
 
     /**
+     * Lấy danh sách các sản phẩm tiết kiệm có sẵn
+     * 
+     * @return Danh sách sản phẩm tiết kiệm
+     */
+    List<SavingsProductResponse> getSavingsProducts();
+
+    /**
      * Mở sổ tiết kiệm kỳ hạn mới
      * 
      * @param request Thông tin mở sổ

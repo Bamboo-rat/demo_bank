@@ -5,6 +5,7 @@ import com.example.accountservice.dto.corebank.CoreBankSavingsCreateRequest;
 import com.example.accountservice.dto.corebank.CoreBankSavingsWithdrawRequest;
 import com.example.accountservice.dto.corebank.LockFundsRequest;
 import com.example.accountservice.dto.corebank.LockFundsResponse;
+import com.example.accountservice.dto.savings.*;
 import com.example.accountservice.entity.Account;
 import com.example.accountservice.mapper.SavingsAccountMapper;
 import com.example.accountservice.service.SavingsInterestRateService;
@@ -21,11 +22,6 @@ import com.example.accountservice.exception.SavingsAccountNotFoundException;
 import com.example.accountservice.repository.AccountRepository;
 import com.example.accountservice.repository.FixedSavingsAccountRepository;
 import com.example.accountservice.service.FixedSavingsAccountService;
-import com.example.accountservice.dto.savings.OpenSavingsRequest;
-import com.example.accountservice.dto.savings.PrematureWithdrawResponse;
-import com.example.accountservice.dto.savings.SavingsAccountResponse;
-import com.example.accountservice.dto.savings.SavingsPreviewRequest;
-import com.example.accountservice.dto.savings.SavingsPreviewResponse;
 import com.example.commonapi.dto.ApiResponse;
 import com.example.commonapi.dto.savings.SavingsBasicInfo;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +34,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -111,6 +108,89 @@ public class FixedSavingsAccountServiceImpl implements FixedSavingsAccountServic
                 .description(String.format("Gửi %s VND trong %d tháng, lãi suất %.2f%%, dự kiến nhận %s VND",
                         request.getPrincipalAmount(), termMonths, interestRate, totalAmount))
                 .build();
+    }
+
+    @Override
+    public List<SavingsProductResponse> getSavingsProducts() {
+        log.info("[SAVINGS-PRODUCTS-001] Fetching available savings products");
+        
+        // Danh sách các sản phẩm tiết kiệm cố định
+        List<SavingsProductResponse> products = new ArrayList<>();
+        
+        // Sản phẩm 3 tháng
+        products.add(SavingsProductResponse.builder()
+                .productCode("FIXED_3M")
+                .productName("Tiết kiệm kỳ hạn 3 tháng")
+                .description("Gửi tiết kiệm có kỳ hạn 3 tháng với lãi suất cố định")
+                .minAmount(new BigDecimal("1000000"))
+                .maxAmount(BigDecimal.ZERO)
+                .termMonths(3)
+                .interestRate(new BigDecimal("4.5"))
+                .earlyWithdrawalPenalty(new BigDecimal("1.5"))
+                .build());
+        
+        // Sản phẩm 6 tháng
+        products.add(SavingsProductResponse.builder()
+                .productCode("FIXED_6M")
+                .productName("Tiết kiệm kỳ hạn 6 tháng")
+                .description("Gửi tiết kiệm có kỳ hạn 6 tháng với lãi suất cố định")
+                .minAmount(new BigDecimal("1000000"))
+                .maxAmount(BigDecimal.ZERO)
+                .termMonths(6)
+                .interestRate(new BigDecimal("5.0"))
+                .earlyWithdrawalPenalty(new BigDecimal("2.0"))
+                .build());
+        
+        // Sản phẩm 9 tháng
+        products.add(SavingsProductResponse.builder()
+                .productCode("FIXED_9M")
+                .productName("Tiết kiệm kỳ hạn 9 tháng")
+                .description("Gửi tiết kiệm có kỳ hạn 9 tháng với lãi suất cố định")
+                .minAmount(new BigDecimal("1000000"))
+                .maxAmount(BigDecimal.ZERO)
+                .termMonths(9)
+                .interestRate(new BigDecimal("5.3"))
+                .earlyWithdrawalPenalty(new BigDecimal("2.3"))
+                .build());
+        
+        // Sản phẩm 12 tháng
+        products.add(SavingsProductResponse.builder()
+                .productCode("FIXED_12M")
+                .productName("Tiết kiệm kỳ hạn 12 tháng")
+                .description("Gửi tiết kiệm có kỳ hạn 12 tháng với lãi suất cố định")
+                .minAmount(new BigDecimal("1000000"))
+                .maxAmount(BigDecimal.ZERO)
+                .termMonths(12)
+                .interestRate(new BigDecimal("5.5"))
+                .earlyWithdrawalPenalty(new BigDecimal("2.5"))
+                .build());
+        
+        // Sản phẩm 18 tháng
+        products.add(SavingsProductResponse.builder()
+                .productCode("FIXED_18M")
+                .productName("Tiết kiệm kỳ hạn 18 tháng")
+                .description("Gửi tiết kiệm có kỳ hạn 18 tháng với lãi suất cố định")
+                .minAmount(new BigDecimal("5000000"))
+                .maxAmount(BigDecimal.ZERO)
+                .termMonths(18)
+                .interestRate(new BigDecimal("5.8"))
+                .earlyWithdrawalPenalty(new BigDecimal("3.0"))
+                .build());
+        
+        // Sản phẩm 24 tháng
+        products.add(SavingsProductResponse.builder()
+                .productCode("FIXED_24M")
+                .productName("Tiết kiệm kỳ hạn 24 tháng")
+                .description("Gửi tiết kiệm có kỳ hạn 24 tháng với lãi suất cố định cao nhất")
+                .minAmount(new BigDecimal("10000000"))
+                .maxAmount(BigDecimal.ZERO)
+                .termMonths(24)
+                .interestRate(new BigDecimal("6.0"))
+                .earlyWithdrawalPenalty(new BigDecimal("3.5"))
+                .build());
+        
+        log.info("[SAVINGS-PRODUCTS-SUCCESS] Fetched {} products", products.size());
+        return products;
     }
 
     @Override

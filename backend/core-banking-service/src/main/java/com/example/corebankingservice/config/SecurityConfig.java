@@ -20,6 +20,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/balance/**").permitAll()
                 .requestMatchers("/api/accounts/**").permitAll()
+                .requestMatchers("/api/core-banking/fund-locks/**").permitAll()
                 .anyRequest().authenticated()
             );
 

@@ -52,8 +52,8 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     
     @Override
     @Transactional
-    public LoanApplicationResponse registerApplication(LoanApplicationRequest request) {
-        log.info("[APP-REGISTER-001] Registering loan application for customer: {}", request.getCustomerId());
+    public LoanApplicationResponse registerApplication(LoanApplicationRequest request, String customerId) {
+        log.info("[APP-REGISTER-001] Registering loan application for customer: {}", customerId);
         
         // Validate loan amount
         if (request.getRequestedAmount().compareTo(MIN_LOAN_AMOUNT) < 0 || 
@@ -73,27 +73,27 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         // Verify customer via Dubbo
         CustomerInfoResponse customer;
         try {
-            customer = customerServiceClient.getCustomerInfo(request.getCustomerId());
+            customer = customerServiceClient.getCustomerInfo(customerId);
             if (customer == null || !"ACTIVE".equals(customer.getStatus()) || !customer.isKycCompleted()) {
-                log.error("[APP-REGISTER-004] Customer not eligible: {}", request.getCustomerId());
+                log.error("[APP-REGISTER-004] Customer not eligible: {}", customerId);
                 throw new LoanServiceException(ErrorCode.APP_002, "Customer not found or not eligible for loan");
             }
         } catch (Exception e) {
-            log.error("[APP-REGISTER-005] Failed to verify customer: {}", request.getCustomerId(), e);
+            log.error("[APP-REGISTER-005] Failed to verify customer: {}", customerId, e);
             throw new LoanServiceException(ErrorCode.CUST_001, "Customer service unavailable", e);
         }
         
         // Check for existing pending application
         List<LoanApplication> pendingApps = applicationRepository
-                .findByCustomerIdAndStatus(request.getCustomerId(), ApplicationStatus.PENDING_APPROVAL);
+                .findByCustomerIdAndStatus(customerId, ApplicationStatus.PENDING_APPROVAL);
         if (!pendingApps.isEmpty()) {
-            log.error("[APP-REGISTER-006] Customer has existing pending application: {}", request.getCustomerId());
+            log.error("[APP-REGISTER-006] Customer has existing pending application: {}", customerId);
             throw new LoanServiceException(ErrorCode.APP_003, "Customer already has pending loan application");
         }
         
         // Create application
         LoanApplication application = LoanApplication.builder()
-                .customerId(request.getCustomerId())
+                .customerId(customerId)
                 .requestedAmount(request.getRequestedAmount())
                 .tenor(request.getTenor())
                 .purpose(request.getPurpose())

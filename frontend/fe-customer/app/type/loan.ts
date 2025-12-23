@@ -58,7 +58,6 @@ export interface LoanPaymentHistory {
 }
 
 export interface CreateLoanApplicationRequest {
-  customerId: string 
   requestedAmount: number
   tenor: number
   purpose: string

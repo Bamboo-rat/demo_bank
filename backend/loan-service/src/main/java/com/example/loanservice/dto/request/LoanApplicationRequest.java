@@ -19,9 +19,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class LoanApplicationRequest {
 
-    @NotBlank(message = "ID khách hàng không được để trống")
-    private String customerId;
-
     @NotNull(message = "Số tiền vay không được để trống")
     @DecimalMin(value = "10000000", message = "Số tiền vay tối thiểu là 10,000,000 VND")
     @DecimalMax(value = "1000000000", message = "Số tiền vay tối đa là 1,000,000,000 VND")

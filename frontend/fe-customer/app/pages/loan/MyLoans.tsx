@@ -22,17 +22,16 @@ export default function MyLoans() {
       setLoading(true)
       setError(null)
 
-      const customerId = customerProfile?.customerId
-      if (!customerId) {
+      if (!customerProfile?.customerId) {
         setError('Không tìm thấy thông tin khách hàng')
         return
       }
 
       if (activeTab === 'accounts') {
-        const data = await loanService.getMyLoans(customerId)
+        const data = await loanService.getMyLoans()
         setLoanAccounts(data)
       } else {
-        const data = await loanService.getMyLoanApplications(customerId)
+        const data = await loanService.getMyLoanApplications()
         setLoanApplications(data)
       }
     } catch (err) {

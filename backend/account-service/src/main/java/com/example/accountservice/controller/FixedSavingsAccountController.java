@@ -40,7 +40,7 @@ public class FixedSavingsAccountController {
         } catch (InvalidSavingsOperationException e) {
             log.error("[CONTROLLER] Error calculating preview: {} - {}", e.getErrorCode(), e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+                        .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
                     
         } catch (Exception e) {
             log.error("[CONTROLLER] Unexpected error calculating preview", e);
@@ -69,7 +69,7 @@ public class FixedSavingsAccountController {
         } catch (InvalidSavingsOperationException e) {
             log.error("[CONTROLLER] Error opening savings account: {} - {}", e.getErrorCode(), e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+                        .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
                     
         } catch (Exception e) {
             log.error("[CONTROLLER] Unexpected error opening savings account", e);
@@ -98,7 +98,7 @@ public class FixedSavingsAccountController {
         } catch (SavingsAccountNotFoundException e) {
             log.error("[CONTROLLER] Savings account not found: {}", savingsAccountId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+                        .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
                     
         } catch (Exception e) {
             log.error("[CONTROLLER] Error fetching savings account", e);
@@ -177,12 +177,12 @@ public class FixedSavingsAccountController {
         } catch (SavingsAccountNotFoundException e) {
             log.error("[CONTROLLER] Savings account not found: {}", savingsAccountId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+                        .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
                     
         } catch (InvalidSavingsOperationException e) {
             log.error("[CONTROLLER] Invalid withdrawal operation: {} - {}", e.getErrorCode(), e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+                        .body(ApiResponse.error(e.getMessage(), e.getErrorCode()));
                     
         } catch (Exception e) {
             log.error("[CONTROLLER] Error processing premature withdrawal", e);

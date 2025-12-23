@@ -105,10 +105,10 @@ const mapRepaymentSchedule = (schedule: any): RepaymentSchedule => ({
 
 export const loanService = {
 
-  async getMyLoanApplications(customerId: string): Promise<LoanApplication[]> {
+  async getMyLoanApplications(): Promise<LoanApplication[]> {
     try {
       const { data } = await axiosLoan.get<any[]>(
-        `/loan/applications/customer/${customerId}`
+        '/loan/applications/customer/me'
       )
 
       return data.map(mapLoanApplication)
@@ -117,10 +117,10 @@ export const loanService = {
     }
   },
 
-  async getMyLoans(customerId: string): Promise<LoanAccount[]> {
+  async getMyLoans(): Promise<LoanAccount[]> {
     try {
       const { data } = await axiosLoan.get<any[]>(
-        `/loan/accounts/customer/${customerId}`
+        '/loan/accounts/customer/me'
       )
 
       return data.map(mapLoanAccount)

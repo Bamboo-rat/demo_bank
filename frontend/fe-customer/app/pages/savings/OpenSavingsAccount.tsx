@@ -5,9 +5,11 @@ import { accountService } from '~/service/accountService'
 import type { SavingsProduct } from '~/type/savings'
 import type { AccountSummary } from '~/service/accountService'
 import Layout from '~/component/layout/Layout'
+import { useToast } from '~/context/ToastContext'
 
 export default function OpenSavingsAccount() {
   const navigate = useNavigate()
+  const { success: showSuccess, error: showError } = useToast()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState<SavingsProduct[]>([])
@@ -23,6 +25,21 @@ export default function OpenSavingsAccount() {
     estimatedInterest: 0,
     maturityAmount: 0
   })
+
+  const getTenorEnum = (termMonths: number) => {
+    const tenorMap: Record<number, string> = {
+      0: 'NO_TERM',
+      1: 'ONE_MONTH',
+      3: 'THREE_MONTHS',
+      6: 'SIX_MONTHS',
+      9: 'NINE_MONTHS',
+      12: 'TWELVE_MONTHS',
+      18: 'EIGHTEEN_MONTHS',
+      24: 'TWENTY_FOUR_MONTHS',
+      36: 'THIRTY_SIX_MONTHS'
+    }
+    return tenorMap[termMonths] ?? null
+  }
 
   useEffect(() => {
     loadInitialData()
@@ -44,15 +61,21 @@ export default function OpenSavingsAccount() {
       setAccounts(accountsData.filter((a) => a.accountType === 'CHECKING' && a.status === 'ACTIVE'))
     } catch (error) {
       console.error('Failed to load data:', error)
+      showError('Không thể tải dữ liệu tiết kiệm, vui lòng thử lại.')
     }
   }
 
   const calculateInterest = async () => {
     if (!selectedProduct) return
     try {
+      const tenor = getTenorEnum(selectedProduct.termMonths)
+      if (!tenor) {
+        console.error('Unsupported tenor for savings product:', selectedProduct.termMonths)
+        return
+      }
       const result = await savingsService.calculateInterest(
         Number(formData.depositAmount),
-        `${selectedProduct.termMonths}M`,  // Convert to tenor format: "6M", "12M", etc.
+        tenor,
         'END_OF_TERM'
       )
       setCalculatedInterest({
@@ -61,6 +84,7 @@ export default function OpenSavingsAccount() {
       })
     } catch (error) {
       console.error('Failed to calculate interest:', error)
+      showError('Không thể tính toán lãi dự kiến, vui lòng thử lại.')
     }
   }
 
@@ -75,19 +99,33 @@ export default function OpenSavingsAccount() {
 
     try {
       setLoading(true)
+      const tenor = getTenorEnum(selectedProduct.termMonths)
+      if (!tenor) {
+        showError('Kỳ hạn gửi tiết kiệm không hợp lệ, vui lòng chọn lại sản phẩm.')
+        setLoading(false)
+        return
+      }
+      if (!formData.sourceAccountNumber) {
+        showError('Vui lòng chọn tài khoản nguồn trước khi mở sổ.')
+        setLoading(false)
+        return
+      }
       await savingsService.createSavingsAccount({
         sourceAccountNumber: formData.sourceAccountNumber,
         principalAmount: Number(formData.depositAmount),
-        tenor: `${selectedProduct.termMonths}M`,  // Convert to tenor format
+        tenor,
         interestPaymentMethod: 'END_OF_TERM',
         autoRenewType: formData.autoRenew ? 'PRINCIPAL_AND_INTEREST' : 'NONE',
         description: `Mở sổ ${selectedProduct.productName}`
       })
 
-      alert('Mở sổ tiết kiệm thành công!')
+      showSuccess('Mở sổ tiết kiệm thành công!')
       navigate('/saving/books')
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Có lỗi xảy ra')
+      const message = error instanceof Error && error.message
+        ? error.message
+        : 'Có lỗi xảy ra khi mở sổ tiết kiệm, vui lòng thử lại.'
+      showError(message)
     } finally {
       setLoading(false)
     }

@@ -164,8 +164,10 @@ export const savingsService = {
 
       return {
         interestRate: Number(data.data.interestRate ?? 0),
-        projectedInterest: Number(data.data.projectedInterest ?? 0),
-        maturityAmount: Number(data.data.maturityAmount ?? 0),
+        projectedInterest: Number(
+          data.data.projectedInterest ?? data.data.estimatedInterest ?? 0
+        ),
+        maturityAmount: Number(data.data.maturityAmount ?? data.data.totalAmount ?? 0),
         maturityDate: data.data.maturityDate
       }
     } catch (error) {

@@ -64,14 +64,14 @@
       },
       {
         "term": "03 tháng",
-        "end_term_rate": 3.50,
+        "end_term_rate": 4.50,
         "periodic_rates": {
           "12_months": null,
           "6_months": null,
           "3_months": null,
-          "1_month": 3.49
+          "1_month": 4.45
         },
-        "prepaid_rate": 3.47
+        "prepaid_rate": 4.40
       },
       {
         "term": "04 tháng",
@@ -97,14 +97,14 @@
       },
       {
         "term": "06 tháng",
-        "end_term_rate": 5.30,
+        "end_term_rate": 5.00,
         "periodic_rates": {
           "12_months": null,
           "6_months": null,
-          "3_months": 5.27,
-          "1_month": 5.24
+          "3_months": 4.95,
+          "1_month": 4.90
         },
-        "prepaid_rate": 5.16
+        "prepaid_rate": 4.85
       },
       {
         "term": "07 tháng",
@@ -130,14 +130,14 @@
       },
       {
         "term": "09 tháng",
-        "end_term_rate": 4.90,
+        "end_term_rate": 5.30,
         "periodic_rates": {
           "12_months": null,
           "6_months": null,
-          "3_months": 4.84,
-          "1_month": 4.82
+          "3_months": 5.20,
+          "1_month": 5.15
         },
-        "prepaid_rate": 4.73
+        "prepaid_rate": 5.05
       },
       {
         "term": "10 tháng",
@@ -207,25 +207,25 @@
       },
       {
         "term": "18 tháng",
-        "end_term_rate": 5.25,
+        "end_term_rate": 5.80,
         "periodic_rates": {
           "12_months": null,
-          "6_months": 5.12,
-          "3_months": 5.09,
-          "1_month": 5.06
+          "6_months": 5.65,
+          "3_months": 5.55,
+          "1_month": 5.45
         },
-        "prepaid_rate": 4.87
+        "prepaid_rate": 5.30
       },
       {
         "term": "24 tháng",
-        "end_term_rate": 5.25,
+        "end_term_rate": 6.00,
         "periodic_rates": {
-          "12_months": 5.12,
-          "6_months": 5.06,
-          "3_months": 5.02,
-          "1_month": 5.00
+          "12_months": 5.80,
+          "6_months": 5.70,
+          "3_months": 5.60,
+          "1_month": 5.50
         },
-        "prepaid_rate": 4.75
+        "prepaid_rate": 5.20
       },
       {
         "term": "36 tháng",

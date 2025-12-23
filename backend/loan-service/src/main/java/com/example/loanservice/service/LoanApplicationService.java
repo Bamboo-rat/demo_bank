@@ -18,7 +18,7 @@ public interface LoanApplicationService {
      * - Create LoanApplication entity
      * - Status: PENDING_APPROVAL
      */
-    LoanApplicationResponse registerApplication(LoanApplicationRequest request);
+    LoanApplicationResponse registerApplication(LoanApplicationRequest request, String customerId);
     
     /**
      * Approve loan application

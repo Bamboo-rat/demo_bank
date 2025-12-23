@@ -59,14 +59,12 @@ export default function LoanApplication() {
     try {
       setLoading(true)
 
-      const customerId = customerProfile?.customerId
-      if (!customerId) {
+      if (!customerProfile?.customerId) {
         alert('Không tìm thấy thông tin khách hàng')
         return
       }
 
       await loanService.createLoanApplication({
-        customerId,
         requestedAmount: Number(formData.requestedAmount),
         tenor: formData.tenor,
         purpose: formData.purpose,

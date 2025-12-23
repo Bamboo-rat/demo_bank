@@ -8,6 +8,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,9 +24,11 @@ public class LoanApplicationController {
     
     @PostMapping
     public ResponseEntity<LoanApplicationResponse> registerApplication(
-            @Valid @RequestBody LoanApplicationRequest request) {
-        log.info("[API-APP-REGISTER] Registering loan application for customer: {}", request.getCustomerId());
-        LoanApplicationResponse response = applicationService.registerApplication(request);
+            @Valid @RequestBody LoanApplicationRequest request,
+            Authentication authentication) {
+        String customerId = extractCustomerId(authentication);
+        log.info("[API-APP-REGISTER] Registering loan application for customer: {}", customerId);
+        LoanApplicationResponse response = applicationService.registerApplication(request, customerId);
         return ResponseEntity.ok(response);
     }
     
@@ -63,11 +67,19 @@ public class LoanApplicationController {
         return ResponseEntity.ok(response);
     }
     
-    @GetMapping("/customer/{cifId}")
+    @GetMapping("/customer/me")
     public ResponseEntity<List<LoanApplicationResponse>> getApplicationsByCustomer(
-            @PathVariable String cifId) {
-        log.info("[API-APP-LIST] Getting loan applications for customer: {}", cifId);
-        List<LoanApplicationResponse> response = applicationService.getApplicationsByCustomer(cifId);
+            Authentication authentication) {
+        String customerId = extractCustomerId(authentication);
+        log.info("[API-APP-LIST] Getting loan applications for current customer: {}", customerId);
+        List<LoanApplicationResponse> response = applicationService.getApplicationsByCustomer(customerId);
         return ResponseEntity.ok(response);
+    }
+
+    private String extractCustomerId(Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
+            return jwt.getSubject();
+        }
+        throw new IllegalStateException("Missing authentication principal for loan request");
     }
 }

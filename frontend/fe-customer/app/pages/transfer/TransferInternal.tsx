@@ -46,6 +46,8 @@ const TransferInternal = () => {
   const [currentStep, setCurrentStep] = useState<TransferStep['step']>('input')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
+  // For toast
+  const { error: showError, success: showSuccess } = toast
   
   // Form data
   const [sourceAccount, setSourceAccount] = useState<AccountSummary | null>(null)
@@ -268,7 +270,6 @@ const TransferInternal = () => {
         feePaymentMethod,
         transferType: 'INTERNAL'
       }
-      
       const response = await transactionService.initiateTransfer(request)
       setTransactionData(response)
       setDigitalOtpPin('')
@@ -277,7 +278,14 @@ const TransferInternal = () => {
       stopTokenTimer()
       setCurrentStep('otp')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể khởi tạo giao dịch')
+      const msg = err instanceof Error ? err.message : 'Không thể khởi tạo giao dịch'
+      // Check for insufficient balance error
+      if (msg.includes('Số dư không đủ') || msg.toLowerCase().includes('insufficient balance')) {
+        showError('Số dư trong tài khoản nguồn không đủ để thực hiện giao dịch. Vui lòng kiểm tra lại số dư hoặc chọn tài khoản khác.')
+      } else {
+        showError(msg)
+      }
+      setError(msg)
     } finally {
       setLoading(false)
     }

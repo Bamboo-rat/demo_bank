@@ -5,6 +5,8 @@ import com.example.loanservice.service.LoanAccountService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,19 +27,28 @@ public class LoanAccountController {
         return ResponseEntity.ok(response);
     }
     
-    @GetMapping("/customer/{cifId}")
+    @GetMapping("/customer/me")
     public ResponseEntity<List<LoanAccountResponse>> getLoanAccountsByCustomer(
-            @PathVariable String cifId) {
-        log.info("[API-ACCOUNT-LIST] Getting loan accounts for customer: {}", cifId);
-        List<LoanAccountResponse> response = accountService.getLoanAccountsByCustomer(cifId);
+            Authentication authentication) {
+        String customerId = extractCustomerId(authentication);
+        log.info("[API-ACCOUNT-LIST] Getting loan accounts for current customer: {}", customerId);
+        List<LoanAccountResponse> response = accountService.getLoanAccountsByCustomer(customerId);
         return ResponseEntity.ok(response);
     }
     
-    @GetMapping("/customer/{cifId}/active")
+    @GetMapping("/customer/me/active")
     public ResponseEntity<List<LoanAccountResponse>> getActiveLoansByCustomer(
-            @PathVariable String cifId) {
-        log.info("[API-ACCOUNT-ACTIVE] Getting active loans for customer: {}", cifId);
-        List<LoanAccountResponse> response = accountService.getActiveLoansByCustomer(cifId);
+            Authentication authentication) {
+        String customerId = extractCustomerId(authentication);
+        log.info("[API-ACCOUNT-ACTIVE] Getting active loans for current customer: {}", customerId);
+        List<LoanAccountResponse> response = accountService.getActiveLoansByCustomer(customerId);
         return ResponseEntity.ok(response);
+    }
+
+    private String extractCustomerId(Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
+            return jwt.getSubject();
+        }
+        throw new IllegalStateException("Missing authentication principal for loan request");
     }
 }

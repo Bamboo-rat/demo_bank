@@ -139,13 +139,13 @@ public class OverdueMonitoringScheduler {
         LoanAccount loanAccount = accountRepository.findById(schedule.getLoanId())
                 .orElseThrow();
         
-        CustomerInfoResponse customer = customerServiceClient.getCustomerInfo(loanAccount.getCustomerId());
+        CustomerInfoResponse customer = customerServiceClient.getCustomerInfoByCustomerId(loanAccount.getCustomerId());
         
         long daysUntilDue = ChronoUnit.DAYS.between(LocalDate.now(), schedule.getDueDate());
         
         RepaymentDueEvent event = RepaymentDueEvent.builder()
             .loanAccountId(loanAccount.getLoanId())
-                .cifId(loanAccount.getCustomerId())
+                .cifId(customer.getCifId())
                 .customerName(customer.getFullName())
                 .customerEmail(customer.getEmail())
                 .customerPhone(customer.getPhone())
@@ -182,12 +182,12 @@ public class OverdueMonitoringScheduler {
         long daysOverdue = ChronoUnit.DAYS.between(schedule.getDueDate(), LocalDate.now());
         
         // Get customer info
-        CustomerInfoResponse customer = customerServiceClient.getCustomerInfo(loanAccount.getCustomerId());
+        CustomerInfoResponse customer = customerServiceClient.getCustomerInfoByCustomerId(loanAccount.getCustomerId());
         
         // Publish overdue event
         LoanOverdueEvent event = LoanOverdueEvent.builder()
             .loanAccountId(loanAccount.getLoanId())
-                .cifId(loanAccount.getCustomerId())
+                .cifId(customer.getCifId())
                 .customerName(customer.getFullName())
                 .customerEmail(customer.getEmail())
                 .customerPhone(customer.getPhone())

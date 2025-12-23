@@ -30,22 +30,22 @@ public class LoanAccountController {
     @GetMapping("/customer/me")
     public ResponseEntity<List<LoanAccountResponse>> getLoanAccountsByCustomer(
             Authentication authentication) {
-        String customerId = extractCustomerId(authentication);
-        log.info("[API-ACCOUNT-LIST] Getting loan accounts for current customer: {}", customerId);
-        List<LoanAccountResponse> response = accountService.getLoanAccountsByCustomer(customerId);
+        String authProviderId = extractAuthProviderId(authentication);
+        log.info("[API-ACCOUNT-LIST] Getting loan accounts for authProviderId: {}", authProviderId);
+        List<LoanAccountResponse> response = accountService.getLoanAccountsByCustomer(authProviderId);
         return ResponseEntity.ok(response);
     }
     
     @GetMapping("/customer/me/active")
     public ResponseEntity<List<LoanAccountResponse>> getActiveLoansByCustomer(
             Authentication authentication) {
-        String customerId = extractCustomerId(authentication);
-        log.info("[API-ACCOUNT-ACTIVE] Getting active loans for current customer: {}", customerId);
-        List<LoanAccountResponse> response = accountService.getActiveLoansByCustomer(customerId);
+        String authProviderId = extractAuthProviderId(authentication);
+        log.info("[API-ACCOUNT-ACTIVE] Getting active loans for authProviderId: {}", authProviderId);
+        List<LoanAccountResponse> response = accountService.getActiveLoansByCustomer(authProviderId);
         return ResponseEntity.ok(response);
     }
 
-    private String extractCustomerId(Authentication authentication) {
+    private String extractAuthProviderId(Authentication authentication) {
         if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
             return jwt.getSubject();
         }

@@ -17,12 +17,12 @@ public interface LoanAccountService {
     /**
      * Get loan accounts by customer
      */
-    List<LoanAccountResponse> getLoanAccountsByCustomer(String cifId);
+    List<LoanAccountResponse> getLoanAccountsByCustomer(String authProviderId);
     
     /**
      * Get active loan accounts by customer
      */
-    List<LoanAccountResponse> getActiveLoansByCustomer(String cifId);
+    List<LoanAccountResponse> getActiveLoansByCustomer(String authProviderId);
     
     /**
      * Update loan status (internal use)

@@ -52,8 +52,8 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     
     @Override
     @Transactional
-    public LoanApplicationResponse registerApplication(LoanApplicationRequest request, String customerId) {
-        log.info("[APP-REGISTER-001] Registering loan application for customer: {}", customerId);
+    public LoanApplicationResponse registerApplication(LoanApplicationRequest request, String authProviderId) {
+        log.info("[APP-REGISTER-001] Registering loan application for authProviderId: {}", authProviderId);
         
         // Validate loan amount
         if (request.getRequestedAmount().compareTo(MIN_LOAN_AMOUNT) < 0 || 
@@ -73,19 +73,21 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         // Verify customer via Dubbo
         CustomerInfoResponse customer;
         try {
-            customer = customerServiceClient.getCustomerInfo(customerId);
-            if (customer == null || !"ACTIVE".equals(customer.getStatus()) || !customer.isKycCompleted()) {
-                log.error("[APP-REGISTER-004] Customer not eligible: {}", customerId);
+            customer = customerServiceClient.getCustomerInfoByAuthProviderId(authProviderId);
+            if (customer == null || !customer.isKycCompleted()) {
+                log.error("[APP-REGISTER-004] Customer not eligible via authProviderId: {}", authProviderId);
                 throw new LoanServiceException(ErrorCode.APP_002, "Customer not found or not eligible for loan");
             }
         } catch (Exception e) {
-            log.error("[APP-REGISTER-005] Failed to verify customer: {}", customerId, e);
+            log.error("[APP-REGISTER-005] Failed to verify customer: {}", authProviderId, e);
             throw new LoanServiceException(ErrorCode.CUST_001, "Customer service unavailable", e);
         }
+
+        final String customerId = customer.getCustomerId();
         
         // Check for existing pending application
         List<LoanApplication> pendingApps = applicationRepository
-                .findByCustomerIdAndStatus(customerId, ApplicationStatus.PENDING_APPROVAL);
+            .findByCustomerIdAndStatus(customerId, ApplicationStatus.PENDING_APPROVAL);
         if (!pendingApps.isEmpty()) {
             log.error("[APP-REGISTER-006] Customer has existing pending application: {}", customerId);
             throw new LoanServiceException(ErrorCode.APP_003, "Customer already has pending loan application");
@@ -127,8 +129,8 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
                     "Application status: " + application.getStatus());
         }
         
-        // Get customer info for event
-        CustomerInfoResponse customer = customerServiceClient.getCustomerInfo(application.getCustomerId());
+        // Get customer info for event and downstream integrations
+        CustomerInfoResponse customer = customerServiceClient.getCustomerInfoByCustomerId(application.getCustomerId());
         
         // Generate loan number from Core Banking
         String loanNumber;
@@ -173,7 +175,7 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         try {
             CoreLoanDisbursementRequest coreRequest = CoreLoanDisbursementRequest.builder()
                     .loanServiceRef(loanAccount.getLoanId())
-                    .cifId(application.getCustomerId())
+                    .cifId(customer.getCifId() != null ? customer.getCifId() : customer.getCustomerId())
                     .accountId(request.getDisbursementAccount())
                     .disbursementAmount(request.getApprovedAmount())
                     .interestRate(request.getInterestRate())
@@ -209,7 +211,7 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
         LoanApprovedEvent event = LoanApprovedEvent.builder()
             .loanApplicationId(application.getApplicationId())
             .loanAccountId(loanAccount.getLoanId())
-                .cifId(application.getCustomerId())
+                    .cifId(customer.getCifId() != null ? customer.getCifId() : customer.getCustomerId())
                 .customerName(customer.getFullName())
                 .customerEmail(customer.getEmail())
                 .customerPhone(customer.getPhone())
@@ -259,10 +261,15 @@ public class LoanApplicationServiceImpl implements LoanApplicationService {
     }
     
     @Override
-    public List<LoanApplicationResponse> getApplicationsByCustomer(String cifId) {
-        log.info("[APP-LIST-001] Getting loan applications for customer: {}", cifId);
-        
-        List<LoanApplication> applications = applicationRepository.findByCustomerId(cifId);
+    public List<LoanApplicationResponse> getApplicationsByCustomer(String authProviderId) {
+        log.info("[APP-LIST-001] Getting loan applications for authProviderId: {}", authProviderId);
+
+        CustomerInfoResponse customer = customerServiceClient.getCustomerInfoByAuthProviderId(authProviderId);
+        if (customer == null) {
+            throw new LoanServiceException(ErrorCode.CUST_001, "Customer not found");
+        }
+
+        List<LoanApplication> applications = applicationRepository.findByCustomerId(customer.getCustomerId());
         return applications.stream()
                 .map(applicationMapper::toResponse)
                 .toList();

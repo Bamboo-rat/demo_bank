@@ -12,6 +12,8 @@ import java.io.Serializable;
 @AllArgsConstructor
 @Builder
 public class CustomerInfoResponse implements Serializable {
+    private String customerId;
+    private String authProviderId;
     private String cifId;
     private String fullName;
     private String email;

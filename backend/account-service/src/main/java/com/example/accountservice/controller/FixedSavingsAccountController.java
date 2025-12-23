@@ -1,5 +1,7 @@
 package com.example.accountservice.controller;
 
+import com.example.accountservice.client.CustomerServiceClient;
+import com.example.accountservice.dto.response.CustomerValidationResponse;
 import com.example.accountservice.exception.InvalidSavingsOperationException;
 import com.example.accountservice.exception.SavingsAccountNotFoundException;
 import com.example.accountservice.service.FixedSavingsAccountService;
@@ -23,6 +25,7 @@ import java.util.List;
 public class FixedSavingsAccountController {
 
     private final FixedSavingsAccountService savingsService;
+    private final CustomerServiceClient customerServiceClient;
 
     /**
      * Xem trước thông tin tiết kiệm (preview lãi suất, tiền lãi dự kiến, ngày đáo hạn)
@@ -60,7 +63,7 @@ public class FixedSavingsAccountController {
         log.info("[CONTROLLER] POST /api/savings/open - Request: {}", request);
         
         try {
-            String customerId = extractCustomerId(authentication);
+            String customerId = resolveCustomerId(authentication);
             SavingsAccountResponse response = savingsService.openSavingsAccount(request, customerId);
             
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -86,11 +89,9 @@ public class FixedSavingsAccountController {
             @PathVariable String savingsAccountId,
             Authentication authentication) {
         
-        log.info("[CONTROLLER] GET /api/savings/{} - customerId: {}", 
-                savingsAccountId, extractCustomerId(authentication));
-        
         try {
-            String customerId = extractCustomerId(authentication);
+            String customerId = resolveCustomerId(authentication);
+            log.info("[CONTROLLER] GET /api/savings/{} - customerId: {}", savingsAccountId, customerId);
             SavingsAccountResponse response = savingsService.getSavingsAccountById(savingsAccountId, customerId);
             
             return ResponseEntity.ok(ApiResponse.success("Savings account fetched successfully", response));
@@ -138,10 +139,9 @@ public class FixedSavingsAccountController {
     public ResponseEntity<ApiResponse<List<SavingsAccountResponse>>> getCustomerSavingsAccounts(
             Authentication authentication) {
         
-        String customerId = extractCustomerId(authentication);
-        log.info("[CONTROLLER] GET /api/savings/customer - customerId: {}", customerId);
-        
         try {
+            String customerId = resolveCustomerId(authentication);
+            log.info("[CONTROLLER] GET /api/savings/customer - customerId: {}", customerId);
             List<SavingsAccountResponse> responses = savingsService.getCustomerSavingsAccounts(customerId);
             
             return ResponseEntity.ok(
@@ -165,11 +165,9 @@ public class FixedSavingsAccountController {
             @PathVariable String savingsAccountId,
             Authentication authentication) {
         
-        log.info("[CONTROLLER] POST /api/savings/{}/premature-withdraw - customerId: {}", 
-                savingsAccountId, extractCustomerId(authentication));
-        
         try {
-            String customerId = extractCustomerId(authentication);
+            String customerId = resolveCustomerId(authentication);
+            log.info("[CONTROLLER] POST /api/savings/{}/premature-withdraw - customerId: {}", savingsAccountId, customerId);
             PrematureWithdrawResponse response = savingsService.prematureWithdraw(savingsAccountId, customerId);
             
             return ResponseEntity.ok(ApiResponse.success("Premature withdrawal processed successfully", response));
@@ -194,10 +192,26 @@ public class FixedSavingsAccountController {
     /**
      * Extract customerId từ JWT token
      */
-    private String extractCustomerId(Authentication authentication) {
-        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
-            return jwt.getSubject(); // UUID from Keycloak
+    private String resolveCustomerId(Authentication authentication) {
+        String authProviderId = extractAuthProviderId(authentication);
+        ApiResponse<CustomerValidationResponse> response = customerServiceClient.getCustomerByAuthProviderId(authProviderId);
+
+        if (response == null || !response.isSuccess() || response.getData() == null || !response.getData().isValid()) {
+            log.error("[CONTROLLER] Unable to resolve customer for authProviderId: {}", authProviderId);
+            throw new InvalidSavingsOperationException(
+                    "SAVINGS_CUSTOMER_NOT_FOUND",
+                    "Unable to resolve customer profile from authentication token");
         }
-        throw new IllegalStateException("Unable to extract customer ID from authentication");
+
+        return response.getData().getCustomerId();
+    }
+
+    private String extractAuthProviderId(Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
+            return jwt.getSubject();
+        }
+        throw new InvalidSavingsOperationException(
+                "SAVINGS_AUTH_MISSING",
+                "Missing authentication principal for savings request");
     }
 }

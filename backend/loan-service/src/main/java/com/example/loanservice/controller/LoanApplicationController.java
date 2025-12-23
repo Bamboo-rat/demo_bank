@@ -26,9 +26,9 @@ public class LoanApplicationController {
     public ResponseEntity<LoanApplicationResponse> registerApplication(
             @Valid @RequestBody LoanApplicationRequest request,
             Authentication authentication) {
-        String customerId = extractCustomerId(authentication);
-        log.info("[API-APP-REGISTER] Registering loan application for customer: {}", customerId);
-        LoanApplicationResponse response = applicationService.registerApplication(request, customerId);
+        String authProviderId = extractAuthProviderId(authentication);
+        log.info("[API-APP-REGISTER] Registering loan application for authProviderId: {}", authProviderId);
+        LoanApplicationResponse response = applicationService.registerApplication(request, authProviderId);
         return ResponseEntity.ok(response);
     }
     
@@ -70,13 +70,13 @@ public class LoanApplicationController {
     @GetMapping("/customer/me")
     public ResponseEntity<List<LoanApplicationResponse>> getApplicationsByCustomer(
             Authentication authentication) {
-        String customerId = extractCustomerId(authentication);
-        log.info("[API-APP-LIST] Getting loan applications for current customer: {}", customerId);
-        List<LoanApplicationResponse> response = applicationService.getApplicationsByCustomer(customerId);
+        String authProviderId = extractAuthProviderId(authentication);
+        log.info("[API-APP-LIST] Getting loan applications for authProviderId: {}", authProviderId);
+        List<LoanApplicationResponse> response = applicationService.getApplicationsByCustomer(authProviderId);
         return ResponseEntity.ok(response);
     }
 
-    private String extractCustomerId(Authentication authentication) {
+    private String extractAuthProviderId(Authentication authentication) {
         if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
             return jwt.getSubject();
         }

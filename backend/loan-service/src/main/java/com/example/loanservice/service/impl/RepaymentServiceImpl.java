@@ -85,12 +85,12 @@ public class RepaymentServiceImpl implements RepaymentService {
         log.info("[DISB-006] Loan account updated to ACTIVE");
         
         // Get customer info for event
-        CustomerInfoResponse customer = customerServiceClient.getCustomerInfo(loanAccount.getCustomerId());
+        CustomerInfoResponse customer = customerServiceClient.getCustomerInfoByCustomerId(loanAccount.getCustomerId());
         
         // Publish event
         LoanDisbursedEvent event = LoanDisbursedEvent.builder()
             .loanAccountId(loanAccount.getLoanId())
-                .cifId(loanAccount.getCustomerId())
+                .cifId(customer.getCifId())
                 .customerName(customer.getFullName())
                 .customerEmail(customer.getEmail())
                 .customerPhone(customer.getPhone())
@@ -201,12 +201,12 @@ public class RepaymentServiceImpl implements RepaymentService {
         log.info("[REPAY-008] Payment history recorded: {}", paymentHistory.getPaymentId());
         
         // Get customer info for event
-        CustomerInfoResponse customer = customerServiceClient.getCustomerInfo(loanAccount.getCustomerId());
+        CustomerInfoResponse customer = customerServiceClient.getCustomerInfoByCustomerId(loanAccount.getCustomerId());
         
         // Publish event
         RepaymentSuccessEvent event = RepaymentSuccessEvent.builder()
             .loanAccountId(loanAccount.getLoanId())
-                .cifId(loanAccount.getCustomerId())
+                .cifId(customer.getCifId())
                 .customerName(customer.getFullName())
                 .customerEmail(customer.getEmail())
                 .customerPhone(customer.getPhone())
@@ -308,12 +308,12 @@ public class RepaymentServiceImpl implements RepaymentService {
         paymentHistoryRepository.save(paymentHistory);
         
         // Get customer info for event
-        CustomerInfoResponse customer = customerServiceClient.getCustomerInfo(loanAccount.getCustomerId());
+        CustomerInfoResponse customer = customerServiceClient.getCustomerInfoByCustomerId(loanAccount.getCustomerId());
         
         // Publish event
         LoanClosedEvent event = LoanClosedEvent.builder()
             .loanAccountId(loanAccount.getLoanId())
-                .cifId(loanAccount.getCustomerId())
+                .cifId(customer.getCifId())
                 .customerName(customer.getFullName())
                 .customerEmail(customer.getEmail())
                 .customerPhone(customer.getPhone())

@@ -62,7 +62,13 @@ public class RegistrationServiceImpl implements RegistrationService {
 
         String otp = generateOtp();
         registrationSessionRepository.saveOtpCode(phoneNumber, otp, OTP_TTL);
-        log.info("Generated registration OTP {} for phone {}", otp, phoneNumber);
+        log.info("╔════════════════════════════════════════════════════════════════╗");
+        log.info("║             REGISTRATION OTP CODE (FOR TESTING)             ║");
+        log.info("╠════════════════════════════════════════════════════════════════╣");
+        log.info("║  Phone Number: {}                                      ║", phoneNumber);
+        log.info("║  OTP Code:     {}                                          ║", otp);
+        log.info("║  Valid for:    {} seconds                                   ║", OTP_TTL.toSeconds());
+        log.info("╚════════════════════════════════════════════════════════════════╝");
 
         return RegistrationStartResponse.builder()
                 .phoneNumber(phoneNumber)

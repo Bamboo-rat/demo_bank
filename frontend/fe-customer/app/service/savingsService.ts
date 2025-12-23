@@ -35,19 +35,36 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const mapSavingsAccount = (account: any): SavingsAccount => ({
-  accountNumber: account.accountNumber,
-  savingsType: account.savingsType,
-  savingsTypeName: SAVINGS_TYPE_LABELS[account.savingsType] ?? account.savingsType,
-  depositAmount: Number(account.depositAmount ?? 0),
+  savingsAccountId: account.savingsAccountId,
+  savingsAccountNumber: account.savingsAccountNumber,
+  customerId: account.customerId,
+  sourceAccountNumber: account.sourceAccountNumber,
+  beneficiaryAccountNumber: account.beneficiaryAccountNumber,
+  principalAmount: Number(account.principalAmount ?? 0),
   interestRate: Number(account.interestRate ?? 0),
-  termMonths: account.termMonths ?? 0,
+  estimatedInterest: Number(account.estimatedInterest ?? 0),
+  totalAmount: Number(account.totalAmount ?? 0),
+  tenor: account.tenor,
+  tenorMonths: account.tenorMonths ?? 0,
+  tenorLabel: account.tenorLabel ?? '',
+  interestPaymentMethod: account.interestPaymentMethod,
+  autoRenewType: account.autoRenewType,
+  startDate: account.startDate,
   maturityDate: account.maturityDate,
   status: account.status,
-  statusLabel: STATUS_LABELS[account.status] ?? account.status,
-  estimatedInterest: Number(account.estimatedInterest ?? 0),
-  maturityAmount: Number(account.maturityAmount ?? 0),
+  description: account.description ?? '',
+  daysUntilMaturity: account.daysUntilMaturity ?? 0,
   createdAt: account.createdAt,
-  autoRenew: account.autoRenew ?? false
+  updatedAt: account.updatedAt,
+  // Backward compatibility computed fields
+  accountNumber: account.savingsAccountNumber,
+  savingsType: 'FIXED_TERM',
+  savingsTypeName: account.tenorLabel ? `Tiết kiệm ${account.tenorLabel}` : 'Có kỳ hạn',
+  depositAmount: Number(account.principalAmount ?? 0),
+  termMonths: account.tenorMonths ?? 0,
+  statusLabel: STATUS_LABELS[account.status] ?? account.status,
+  maturityAmount: Number(account.totalAmount ?? 0),
+  autoRenew: account.autoRenewType !== 'NONE'
 })
 
 export const savingsService = {

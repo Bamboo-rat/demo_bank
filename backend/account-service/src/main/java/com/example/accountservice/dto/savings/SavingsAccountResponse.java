@@ -30,6 +30,8 @@ public class SavingsAccountResponse {
     private BigDecimal totalAmount;
     
     private String tenor;
+    private Integer tenorMonths;
+    private String tenorLabel;
     private String interestPaymentMethod;
     private String autoRenewType;
     

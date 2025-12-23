@@ -656,6 +656,8 @@ public class FixedSavingsAccountServiceImpl implements FixedSavingsAccountServic
                 .principalAmount(account.getPrincipalAmount())
                 .interestRate(account.getInterestRate())
                 .tenor(account.getTenor().name())
+                .tenorMonths(account.getTenor().getMonths())
+                .tenorLabel(account.getTenor().getLabel())
                 .interestPaymentMethod(account.getInterestPaymentMethod().name())
                 .autoRenewType(account.getAutoRenewType().name())
                 .status(account.getStatus().name())

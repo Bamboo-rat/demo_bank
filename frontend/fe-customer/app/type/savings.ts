@@ -1,17 +1,34 @@
 export interface SavingsAccount {
-  accountNumber: string
-  savingsType: string
-  savingsTypeName: string
-  depositAmount: number
+  savingsAccountId: string
+  savingsAccountNumber: string
+  customerId: string
+  sourceAccountNumber: string
+  beneficiaryAccountNumber: string
+  principalAmount: number
   interestRate: number
-  termMonths: number
+  estimatedInterest: number
+  totalAmount: number
+  tenor: string
+  tenorMonths: number
+  tenorLabel: string
+  interestPaymentMethod: string
+  autoRenewType: string
+  startDate: string
   maturityDate: string
   status: string
-  statusLabel: string
-  estimatedInterest: number
-  maturityAmount: number
+  description: string
+  daysUntilMaturity: number
   createdAt: string
-  autoRenew: boolean
+  updatedAt: string
+  // Computed for display
+  accountNumber?: string
+  savingsType?: string
+  savingsTypeName?: string
+  depositAmount?: number
+  termMonths?: number
+  statusLabel?: string
+  maturityAmount?: number
+  autoRenew?: boolean
 }
 
 export interface SavingsProduct {

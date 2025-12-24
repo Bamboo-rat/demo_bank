@@ -220,14 +220,20 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
     @Override
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public TransferExecutionResponse executeTransfer(TransferExecutionRequest request) {
-        log.info("Executing complete transfer in Core Banking: source={}, dest={}, amount={}, ref={}", 
+        log.info("Executing complete transfer in Core Banking: source={}, dest={}, amount={}, bankCode={}, type={}, ref={}", 
                 request.getSourceAccountNumber(), 
                 request.getDestinationAccountNumber(),
-                request.getAmount(), 
+                request.getAmount(),
+                request.getDestinationBankCode(),
+                request.getTransferType(),
                 request.getTransactionReference());
 
-        // Determine if this is an interbank transfer (for now, treat all as internal)
-        boolean isInterbank = false;
+        // Determine if this is an interbank transfer
+        boolean isInterbank = request.getDestinationBankCode() != null 
+                && !request.getDestinationBankCode().isBlank()
+                && !"KIENLONG".equalsIgnoreCase(request.getDestinationBankCode());
+
+        log.info("Transfer type detected: {}", isInterbank ? "INTERBANK" : "INTERNAL");
 
         // Step 1: Debit from source account
         BalanceOperationRequest debitRequest = BalanceOperationRequest.builder()
@@ -243,18 +249,55 @@ public class BalanceManagementServiceImpl implements BalanceManagementService {
                 request.getSourceAccountNumber(), debitResponse.getNewBalance());
 
         try {
-            // Step 2: Internal transfer - credit to destination account
-            BalanceOperationRequest creditRequest = BalanceOperationRequest.builder()
-                    .accountNumber(request.getDestinationAccountNumber())
-                    .amount(request.getAmount())
-                    .transactionReference(request.getTransactionReference())
-                    .description("Transfer from " + request.getSourceAccountNumber())
-                    .performedBy(request.getPerformedBy())
-                    .build();
+            BalanceOperationResponse creditResponse = null;
+            
+            if (isInterbank) {
+                // Step 2a: Interbank transfer - send to partner bank
+                log.info("Executing interbank transfer to bank: {}", request.getDestinationBankCode());
+                
+                PartnerBankAccountResponse partnerResponse = partnerBankService.sendToPartnerBank(
+                        request.getDestinationBankCode(),
+                        request.getDestinationAccountNumber(),
+                        request.getAmount(),
+                        request.getTransactionReference(),
+                        request.getDescription()
+                );
+                
+                if (partnerResponse == null || !partnerResponse.getExists()) {
+                    throw new BusinessException("Failed to transfer to partner bank: Account not found or inactive");
+                }
+                
+                log.info("Interbank transfer successful to bank: {}", request.getDestinationBankCode());
+                
+                // For interbank, we don't have destination balance in our system
+                // Create a mock response for transaction recording
+                creditResponse = BalanceOperationResponse.builder()
+                        .accountNumber(request.getDestinationAccountNumber())
+                        .previousBalance(BigDecimal.ZERO)
+                        .operationAmount(request.getAmount())
+                        .newBalance(BigDecimal.ZERO)
+                        .availableBalance(BigDecimal.ZERO)
+                        .currency(debitResponse.getCurrency())
+                        .transactionReference(request.getTransactionReference())
+                        .operationType("CREDIT_EXTERNAL")
+                        .operationTime(LocalDateTime.now())
+                        .message("Transferred to external bank")
+                        .build();
+                
+            } else {
+                // Step 2b: Internal transfer - credit to destination account
+                BalanceOperationRequest creditRequest = BalanceOperationRequest.builder()
+                        .accountNumber(request.getDestinationAccountNumber())
+                        .amount(request.getAmount())
+                        .transactionReference(request.getTransactionReference())
+                        .description("Transfer from " + request.getSourceAccountNumber())
+                        .performedBy(request.getPerformedBy())
+                        .build();
 
-            BalanceOperationResponse creditResponse = credit(creditRequest);
-            log.info("Credit successful: account={}, new_balance={}", 
-                    request.getDestinationAccountNumber(), creditResponse.getNewBalance());
+                creditResponse = credit(creditRequest);
+                log.info("Credit successful: account={}, new_balance={}", 
+                        request.getDestinationAccountNumber(), creditResponse.getNewBalance());
+            }
             // Step 3: Record transaction in Core Banking Transaction table
             TransactionRecordRequest transactionRecordRequest = TransactionRecordRequest.builder()
                     .sourceAccountId(request.getSourceAccountNumber())

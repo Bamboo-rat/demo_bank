@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -52,8 +53,10 @@ public class LoanAccountServiceImpl implements LoanAccountService {
         log.info("[LOAN-ACTIVE-001] Getting active loans for authProviderId: {}", authProviderId);
 
         String customerId = resolveCustomerId(authProviderId);
-        List<LoanAccount> accounts = accountRepository.findByCustomerIdAndStatusIn(
-                customerId, List.of(LoanStatus.ACTIVE, LoanStatus.OVERDUE));
+        List<LoanStatus> activeStatuses = Arrays.stream(LoanStatus.values())
+            .filter(LoanStatus::isActive)
+            .toList();
+        List<LoanAccount> accounts = accountRepository.findByCustomerIdAndStatusIn(customerId, activeStatuses);
         
         return accounts.stream()
                 .map(accountMapper::toResponse)

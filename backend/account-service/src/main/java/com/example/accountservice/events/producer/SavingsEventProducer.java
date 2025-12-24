@@ -12,10 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Kafka Producer cho Savings events
- * Publish events để notification-service consume
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j

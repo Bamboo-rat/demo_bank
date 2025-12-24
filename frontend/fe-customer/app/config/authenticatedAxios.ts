@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axios'
+import { authService } from '~/service/authService'
 
 const DEFAULT_TIMEOUT = 30000
 const CUSTOMER_SERVICE_BASE_URL =
@@ -28,10 +29,13 @@ const clearStoredTokens = () => {
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
   localStorage.removeItem('user_info')
+  localStorage.removeItem('rememberMe')
+  sessionStorage.removeItem('access_token')
+  sessionStorage.removeItem('refresh_token')
 }
 
 const refreshAccessToken = async () => {
-  const refreshToken = localStorage.getItem('refresh_token')
+  const refreshToken = authService.getRefreshToken()
 
   if (!refreshToken) {
     clearStoredTokens()
@@ -54,10 +58,11 @@ const refreshAccessToken = async () => {
       throw new Error('Không thể làm mới phiên đăng nhập')
     }
 
-    localStorage.setItem('access_token', accessToken)
-    localStorage.setItem('refresh_token', newRefreshToken)
-    localStorage.setItem('accessToken', accessToken)
-    localStorage.setItem('refreshToken', newRefreshToken)
+    // Store in the same storage type as original login
+    const rememberMe = localStorage.getItem('rememberMe') === 'true'
+    const storage = rememberMe ? localStorage : sessionStorage
+    storage.setItem('access_token', accessToken)
+    storage.setItem('refresh_token', newRefreshToken)
 
     return accessToken as string
   } catch (error) {
@@ -95,7 +100,7 @@ export const createAuthenticatedAxios = (
       )
 
       if (!isPublicEndpoint) {
-        const token = localStorage.getItem('access_token')
+        const token = authService.getAccessToken()
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }

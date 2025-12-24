@@ -19,7 +19,7 @@ const Login = () => {
     setLoading(true)
 
     try {
-      const tokens = await authService.login({ username, password })
+      const tokens = await authService.login({ username, password }, rememberMe)
       authLogin(tokens.access_token, tokens.refresh_token)
       showSuccess('Đăng nhập thành công!')
       // Redirect to dashboard on successful login

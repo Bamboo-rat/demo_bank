@@ -22,6 +22,10 @@ public class TransferExecutionRequest {
     @NotBlank(message = "Destination account number is required")
     private String destinationAccountNumber;
 
+    private String destinationBankCode; 
+
+    private String transferType;
+
     @NotNull(message = "Amount is required")
     @Positive(message = "Amount must be positive")
     private BigDecimal amount;

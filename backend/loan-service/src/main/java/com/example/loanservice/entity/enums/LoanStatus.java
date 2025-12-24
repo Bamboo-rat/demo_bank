@@ -3,78 +3,72 @@ package com.example.loanservice.entity.enums;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/**
- * Trạng thái khoản vay
- */
 @Getter
 @RequiredArgsConstructor
 public enum LoanStatus {
-    /**
-     * Đang chờ duyệt
-     */
-    PENDING_APPROVAL("loan.status.pending_approval.name", "loan.status.pending_approval.description", false, false),
-    
-    /**
-     * Đã duyệt, chưa giải ngân
-     */
-    APPROVED("loan.status.approved.name", "loan.status.approved.description", false, false),
-    
-    /**
-     * Từ chối
-     */
-    REJECTED("loan.status.rejected.name", "loan.status.rejected.description", true, false),
-    
-    /**
-     * Đang hoạt động (đã giải ngân)
-     */
-    ACTIVE("loan.status.active.name", "loan.status.active.description", false, true),
-    
-    /**
-     * Quá hạn
-     */
-    OVERDUE("loan.status.overdue.name", "loan.status.overdue.description", false, true),
-    
-    /**
-     * Đã tất toán
-     */
-    PAID_OFF("loan.status.paid_off.name", "loan.status.paid_off.description", true, false),
-    
-    /**
-     * Nợ xấu
-     */
-    DEFAULT("loan.status.default.name", "loan.status.default.description", false, true),
-    
-    /**
-     * Đã đóng
-     */
-    CLOSED("loan.status.closed.name", "loan.status.closed.description", true, false);
+    PENDING("loan.status.pending.name", "loan.status.pending.description", false, false, 1),
+    IN_REVIEW("loan.status.in_review.name", "loan.status.in_review.description", false, false, 2),
+    APPROVED("loan.status.approved.name", "loan.status.approved.description", false, false, 3),
+    REJECTED("loan.status.rejected.name", "loan.status.rejected.description", true, false, -1),
+    DISBURSED("loan.status.disbursed.name", "loan.status.disbursed.description", false, true, 4),
+    ACTIVE("loan.status.active.name", "loan.status.active.description", false, true, 5),
+    OVERDUE("loan.status.overdue.name", "loan.status.overdue.description", false, true, 6),
+    DEFAULTED("loan.status.defaulted.name", "loan.status.defaulted.description", false, true, 7),
+    CLOSED("loan.status.closed.name", "loan.status.closed.description", true, false, 8),
+    CANCELLED("loan.status.cancelled.name", "loan.status.cancelled.description", true, false, 0);
 
     private final String nameMessageCode;
     private final String descriptionMessageCode;
     private final boolean isFinal;
     private final boolean requiresPayment;
+    private final int progressLevel;
 
     /**
-     * Check if loan is active and requires payments
-     * @return true if loan requires regular payments
+     * Indicates whether the loan currently expects periodic payments.
      */
     public boolean isActive() {
         return requiresPayment;
     }
 
     /**
-     * Check if status is terminal (cannot be changed)
-     * @return true if status is permanent
+     * Signals that no further status transitions are allowed.
      */
     public boolean isTerminal() {
         return isFinal;
     }
 
     /**
-     * Check if loan can be repaid
-     * @return true if loan accepts payments
+     * Returns true when the loan is ready for disbursement.
+     */
+    public boolean canDisburse() {
+        return this == APPROVED;
+    }
+
+    /**
+     * Determines whether the current status supports cancellation.
+     */
+    public boolean canCancel() {
+        return this == PENDING || this == IN_REVIEW;
+    }
+
+    /**
+     * Flags statuses that need operational attention.
+     */
+    public boolean requiresAttention() {
+        return this == OVERDUE || this == DEFAULTED;
+    }
+
+    /**
+     * Used to block new loan applications for risky customers.
+     */
+    public boolean allowsNewLoanApplication() {
+        return this != OVERDUE && this != DEFAULTED;
+    }
+
+    /**
+     * True if money can be collected for this loan.
      */
     public boolean canAcceptPayment() {
-        return this == ACTIVE || this == OVERDUE || this == DEFAULT;
+        return requiresPayment;
     }
 }

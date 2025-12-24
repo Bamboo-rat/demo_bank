@@ -120,8 +120,8 @@ public class OverdueMonitoringScheduler {
                 LoanAccount loanAccount = accountRepository.findById(schedule.getLoanId())
                         .orElse(null);
                 
-                if (loanAccount != null && loanAccount.getStatus() != LoanStatus.DEFAULT) {
-                    loanAccount.setStatus(LoanStatus.DEFAULT);
+                if (loanAccount != null && loanAccount.getStatus() != LoanStatus.DEFAULTED) {
+                    loanAccount.setStatus(LoanStatus.DEFAULTED);
                     accountRepository.save(loanAccount);
                     log.info("[SCHEDULER-DEFAULT-003] Loan {} marked as DEFAULTED", 
                             loanAccount.getLoanId());

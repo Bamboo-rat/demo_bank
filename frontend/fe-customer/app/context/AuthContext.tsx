@@ -10,12 +10,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Initialize from localStorage on mount
+  // Initialize from localStorage or sessionStorage on mount
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    const storedAccessToken = localStorage.getItem('access_token')
-    const storedRefreshToken = localStorage.getItem('refresh_token')
+    const storedAccessToken = localStorage.getItem('access_token') || sessionStorage.getItem('access_token')
+    const storedRefreshToken = localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token')
 
     if (storedAccessToken) {
       setAccessToken(storedAccessToken)
@@ -46,12 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (newAccessToken: string, newRefreshToken: string) => {
     setAccessToken(newAccessToken)
     setRefreshToken(newRefreshToken)
-    
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('access_token', newAccessToken)
-      localStorage.setItem('refresh_token', newRefreshToken)
-    }
-    
+
     loadCustomerProfile()
   }
 
@@ -61,9 +56,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCustomerProfile(null)
     
     if (typeof window !== 'undefined') {
+      // Clear from both storages
       localStorage.removeItem('access_token')
       localStorage.removeItem('refresh_token')
       localStorage.removeItem('customerId')
+      localStorage.removeItem('rememberMe')
+      sessionStorage.removeItem('access_token')
+      sessionStorage.removeItem('refresh_token')
     }
   }
 

@@ -1,4 +1,4 @@
-package com.example.commonapi.config;
+package com.example.accountservice.config;
 
 import java.time.Duration;
 
@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
 @Configuration
-public class ApplicationConfig {
+public class RestTemplateConfig {
     @Value("${core-banking.base-url}")
     private String coreBankingBaseUrl;
 

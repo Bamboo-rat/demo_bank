@@ -1,4 +1,4 @@
-package com.example.commonapi.config;
+package com.example.accountservice.config;
 
 import org.keycloak.OAuth2Constants;
 import org.keycloak.admin.client.Keycloak;

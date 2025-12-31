@@ -35,6 +35,7 @@
         <module>transaction-service</module>
         <module>notification-serrvice</module>
         <module>loan-service</module>
+        <module>cms-service</module>
     </modules>
 
     <dependencyManagement>
